@@ -139,7 +139,7 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .badge{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;background:var(--tone-soft);color:var(--tone);position:relative;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tone) 22%,transparent)}
 .badge::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--tone) 35%,transparent);transition:transform .6s}
 .tile:hover .badge::after{transform:rotate(60deg)}
-.t-name{font-weight:600;font-size:14px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
+.t-name{font-weight:600;font-size:13.5px;line-height:1.4;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
 .t-meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:-1px}
@@ -168,7 +168,8 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .orbit-center{position:absolute;left:50%;top:50%;width:var(--c);height:var(--c);transform:translate(-50%,-50%);border-radius:50%;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px;text-align:center;
   background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--tone) 80%,#fff 20%),var(--tone));color:var(--on-tone);box-shadow:0 18px 40px -14px color-mix(in srgb,var(--tone) 70%,transparent),inset 0 0 0 6px color-mix(in srgb,#fff 16%,transparent);animation:pop .5s cubic-bezier(.2,.9,.3,1.25) both;z-index:2}
 .orbit.still .orbit-center{animation:none}
-.orbit-center .c-name{font-family:var(--f-display);font-weight:600;line-height:1.35;font-size:var(--cf);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.orbit-center .c-name{font-family:var(--f-display);font-weight:600;line-height:1.3;font-size:var(--cf);max-width:100%;overflow-wrap:anywhere;text-wrap:balance}
+.focus-center{padding:18px 16px}
 .orbit-center .c-sub{font-size:11.5px;opacity:.85}
 .orbit-center .c-up{font-size:11px;opacity:.8;display:inline-flex;align-items:center;gap:3px;margin-top:2px}
 .orbit-item{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);padding:0;border:0;background:none;transform:translate(-50%,-50%) translate(var(--x),var(--y));animation:fly .6s cubic-bezier(.2,.9,.3,1.18) var(--d) backwards;z-index:3}
@@ -178,7 +179,7 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .orbit-item.leaf .bubble{background:var(--tone-soft)}
 .orbit-item:hover .bubble,.orbit-item:focus-visible .bubble{transform:scale(1.08)}
 .orbit-item.active .bubble{box-shadow:0 0 0 4px var(--bg),0 0 0 7px var(--tone)}
-.o-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);width:calc(var(--s) * 1.7);font-size:var(--lf);font-weight:600;line-height:1.35;text-align:center;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.o-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);width:calc(var(--s) * 1.9);font-size:var(--lf);font-weight:600;line-height:1.3;text-align:center;color:var(--ink);text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .o-count{position:absolute;top:-2px;inset-inline-start:-2px;min-width:24px;height:24px;border-radius:12px;padding:0 7px;display:grid;place-items:center;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;box-shadow:0 0 0 3px var(--bg)}
 .o-kind{position:absolute;bottom:-2px;inset-inline-end:-2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--tone);box-shadow:0 0 0 2px var(--bg),inset 0 0 0 1.5px var(--tone)}
 .orbit-hint{position:absolute;left:50%;top:calc(50% + var(--c)/2 + 26px);transform:translateX(-50%);width:min(320px,90%);text-align:center;color:var(--muted);font-size:13px}
@@ -888,7 +889,7 @@ function focusSchool(code, anim = true) {
   const root = fp.length ? rootOf(fp[0]) : null;
   const rs = node ? kids(node) : visRoots(), n = rs.length;
   const small = window.innerWidth < 560;
-  const sItem = small ? 62 : 80, c = small ? 120 : 146, lab = 46;
+  const sItem = small ? 62 : 80, c = small ? 150 : 180, lab = 56;
   const R = Math.max(c / 2 + sItem / 2 + lab, n ? (n * sItem * 2) / (2 * Math.PI) : 0);
   const size = Math.ceil(R + sItem / 2 + lab) * 2, half0 = size / 2;
   const k = Math.min(1, (window.innerWidth - 16) / size, (window.innerHeight - 90) / size);
@@ -918,9 +919,20 @@ function focusSchool(code, anim = true) {
     <div class="focus-wrap" dir="rtl" style="left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) scale(${k.toFixed(3)})">
       <div class="orbit ${anim ? '' : 'still'}" style="width:${size}px;height:${size}px;--c:${c}px">
         <svg class="orbit-lines" viewBox="${-half0} ${-half0} ${size} ${size}"><circle class="ring spin" r="${R}"/>${lines}</svg>
-        <button class="orbit-center focus-center" data-act="fup" style="--tone:var(--${ctone});--cf:${small ? 14 : 16}px" title="${node ? 'رجوع' : 'إغلاق'}">${center}</button>
+        <button class="orbit-center focus-center" data-act="fup" style="--tone:var(--${ctone});--cf:${small ? 15 : 17}px" title="${esc(node ? node.name : s.name)}">${center}</button>
         ${items}${hint}</div></div>`;
+  fitNames($('#overlay'));
   S.focusGuard = Date.now() + 400;
+}
+/* Shrinks a center circle's name until the whole circle content fits inside the circle (circle's usable height ≈ 74% of its size). */
+function fitNames(scope) {
+  $$('.orbit-center', scope).forEach(btn => {
+    const name = $('.c-name', btn); if (!name) return;
+    const room = btn.clientHeight * 0.74;
+    const used = () => [...btn.children].reduce((a, ch) => a + ch.offsetHeight, 0) + (btn.children.length - 1) * 4;
+    let fs = parseFloat(getComputedStyle(name).fontSize);
+    while (used() > room && fs > 10) { fs -= 0.5; name.style.fontSize = fs + 'px'; }
+  });
 }
 function closeFocus() {
   if (!S.focus) return;
@@ -1042,6 +1054,7 @@ function renderOrbit(anim) {
       ${ic(center.icon, Math.round(c * 0.2), 1.6)}<span class="c-name">${esc(center.name)}</span><span class="c-sub">${esc(center.sub)}</span>
       <span class="c-up">${ic('up', 12, 2)} ${esc(center.up)}</span></button>
     ${html}${hint}</div>`;
+  fitNames(st);
 }
 let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (S.view === 'school') renderOrbit(false); else if (S.focus) focusSchool(S.focus, false); }, 120); });
 
