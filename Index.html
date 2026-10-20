@@ -42,6 +42,9 @@
   color-scheme:dark}
 
 html,body{height:100%}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth [data-lenis-prevent]{overscroll-behavior:contain}
+.lenis.lenis-smooth iframe{pointer-events:none}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
   background-image:radial-gradient(1200px 500px at 85% -10%,var(--accent-soft),transparent 70%)}
@@ -61,6 +64,11 @@ a.btn{text-decoration:none;color:inherit}
 .btn:active{transform:scale(.98)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.primary:hover{filter:brightness(1.07)}
+.btn.primary{position:relative;isolation:isolate}
+.btn.primary::after{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;opacity:0;background:conic-gradient(from var(--star-angle,0deg),transparent 0deg 300deg,var(--accent-soft) 326deg,transparent 350deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;filter:drop-shadow(0 0 3px var(--accent-soft));transition:opacity .2s}
+.btn.primary:hover::after,.btn.primary:focus-visible::after{opacity:.9;animation:star-border 2.4s linear infinite}
+@property --star-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes star-border{to{--star-angle:360deg}}
 .btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,var(--line))}
 .btn.danger:hover{background:var(--danger-soft)}
 .btn.ghost{background:transparent;border-color:transparent}
@@ -96,9 +104,16 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .banner{background:var(--hr-soft);color:var(--ink);font-size:13px;text-align:center;padding:6px 16px}
 
 /* ---------- home ---------- */
-.home-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;padding-block:22px 6px}
+.home-head{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;min-height:164px;margin-block:14px 6px;padding:clamp(22px,3vw,34px);border:1px solid color-mix(in srgb,var(--line) 72%,transparent);border-radius:22px;background:color-mix(in srgb,var(--surface) 76%,transparent)}
 .home-head h1{font-size:clamp(22px,3vw,30px)}
 .home-head p{margin:4px 0 0;color:var(--muted)}
+.hero-rays{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;opacity:.72}
+.hero-rays::before{content:"";position:absolute;inset:-50%;background:radial-gradient(ellipse at 22% 48%,color-mix(in srgb,var(--accent-soft) 72%,transparent),transparent 34%),radial-gradient(ellipse at 78% 24%,color-mix(in srgb,var(--bld-soft) 62%,transparent),transparent 38%)}
+.hero-rays i{position:absolute;top:-85%;width:18%;height:270%;border-radius:50%;filter:blur(20px);transform:rotate(24deg);background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent-soft) 72%,transparent) 48%,transparent)}
+.hero-rays i:nth-child(1){left:16%}
+.hero-rays i:nth-child(2){left:37%;width:12%;opacity:.7;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--bld-soft) 70%,transparent) 50%,transparent)}
+.hero-rays i:nth-child(3){right:13%;width:14%;opacity:.65}
+.home-head .stats{position:relative;z-index:1}
 .stats{display:flex;gap:10px;flex-wrap:wrap}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 14px;min-width:96px}
 .stat b{font-family:var(--f-display);font-size:20px;display:block;font-variant-numeric:tabular-nums;line-height:1.3}
@@ -173,8 +188,8 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---------- info sheet ---------- */
-.scrim{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--ink) 35%,transparent);animation:fade .2s both}
-.sheet{position:fixed;z-index:51;top:0;bottom:0;inset-inline-start:0;width:min(560px,100%);background:var(--bg);display:flex;flex-direction:column;box-shadow:var(--shadow);animation:slide .3s cubic-bezier(.2,.9,.3,1) both;
+.scrim{position:fixed;inset:0;z-index:58;background:color-mix(in srgb,var(--ink) 35%,transparent);animation:fade .2s both}
+.sheet{position:fixed;z-index:59;top:0;bottom:0;inset-inline-start:0;width:min(560px,100%);background:var(--bg);display:flex;flex-direction:column;box-shadow:var(--shadow);animation:slide .3s cubic-bezier(.2,.9,.3,1) both;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .sheet-head{display:flex;align-items:flex-start;gap:12px;padding:18px 18px 14px;background:var(--surface);border-bottom:1px solid var(--line);padding-inline-start:max(18px,env(safe-area-inset-right,0px))}
 .sheet-head .s-icon{width:46px;height:46px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--tone-soft);color:var(--tone)}
@@ -320,11 +335,12 @@ tr:last-child td{border-bottom:0}
   .brand small{display:none}
   .user-chip .u-name{display:none}
   .user-chip{padding:4px}
+  .home-head{align-items:flex-start}
   .tiles{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
   .badge{width:64px;height:64px}
   .sheet{width:100%}
 }
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition:none!important}.hero-rays i{opacity:.35}.btn.primary::after{animation:none!important}}
 </style>
 </head>
 <body>
@@ -337,6 +353,7 @@ tr:last-child td{border-bottom:0}
     <main id="view"></main>
   </div>
   <div id="overlay"></div>
+  <div id="sheetHost"></div>
   <div id="dialogs"></div>
   <input type="file" id="fImage" accept="image/*" multiple hidden>
   <input type="file" id="fDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,image/*" multiple hidden>
@@ -344,11 +361,27 @@ tr:last-child td{border-bottom:0}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.3.27/dist/lenis.min.js"></script>
 <script>
 (() => {
 'use strict';
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
+
+let lenis = null;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let homeIntroTimeline = null;
+let heroRayTween = null;
+if (!reducedMotion && window.gsap && window.ScrollTrigger && window.Lenis) {
+  gsap.registerPlugin(ScrollTrigger);
+  lenis = new Lenis({ autoRaf: false, lerp: 0.1, smoothWheel: true });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(time => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+}
+const scrollToTop = () => lenis ? lenis.scrollTo(0, { immediate: true }) : window.scrollTo({ top: 0 });
 
 /* ================= icons ================= */
 const P = {
@@ -466,13 +499,14 @@ const stageLabel = s => { s = String(s || '').trim(); return /^\d+\s*[-–_/]\s*
 /* ================= state ================= */
 const S = {
   token: null, ver: '0', loaded: false, needsSetup: false, driveUrl: '',
-  users: [], config: normConfig(null), focus: null, focusGuard: 0, infoCode: null, infoReq: 0, infoLoading: false, fp: '',
+  users: [], config: normConfig(null), focus: null, focusPath: [], focusGuard: 0, infoCode: null, infoReq: 0, infoLoading: false, fp: '',
   schools: [], me: null,
   view: 'home', q: '', fw: '', fg: '',
   school: null, path: [], info: {},
   sheet: null, composing: null, panel: null, tab: 'schools', importRows: null, importMode: 'merge',
   pin: ''
 };
+let gridMotionContext = null;
 const can = r => S.me && (r === 'edit' ? (S.me.role === 'admin' || S.me.role === 'editor') : S.me.role === 'admin');
 const TOKEN_KEY = 'schools-guide:token';
 
@@ -640,8 +674,8 @@ document.addEventListener('keydown', e => {
     if ($('#dialogs').children.length) return closeDialog();
     if ($('.lightbox')) return $('.lightbox').remove();
     if ($('.menu')) return $('.menu').remove();
-    if (S.focus) return closeFocus();
     if (S.sheet) return closeSheet();
+    if (S.focus) return focusUp();
     if (S.panel) return closePanel();
     if (S.view === 'school') goUp();
   }
@@ -680,23 +714,82 @@ function filtered() {
     (!q || norm(s.name).includes(q) || norm(s.code).includes(q)));
 }
 function goHome() {
+  stopHomeMotion();
   closeSheet(); unsubInfo(); S.focus = null; $('#overlay').innerHTML = '';
   S.view = 'home'; S.school = null; S.path = [];
   $('#view').innerHTML = `<div class="wrap">
-    <div class="home-head"><div><h1>المدارس</h1><p>اختر مدرسة لعرض معلومات الأبنية والمورد البشري.</p></div><div class="stats" id="stats"></div></div>
+    <div class="home-head"><div class="hero-rays" aria-hidden="true"><i></i><i></i><i></i></div><div><h1>المدارس</h1><p>اختر مدرسة لعرض معلومات الأبنية والمورد البشري.</p></div><div class="stats" id="stats"></div></div>
     <div class="toolbar">
       <label class="search">${ic('search', 20)}<input id="q" type="search" placeholder="ابحث برمز المدرسة أو اسمها" value="${esc(S.q)}" autocomplete="off" aria-label="بحث"></label>
       <div class="chips" id="chips"></div>
     </div>
     <div id="grid"></div></div>`;
-  $('#q').addEventListener('input', e => { const had = !!S.q; S.q = e.target.value; renderGrid(); if (had !== !!S.q) renderChips(); });
+  $('#q').addEventListener('input', e => { const had = !!S.q; S.q = e.target.value; renderGrid(false); if (had !== !!S.q) renderChips(); });
   renderStats(); renderChips(); renderGrid();
-  window.scrollTo({ top: 0 });
+  scrollToTop();
+  animateHomeIntro();
+}
+function animateHomeIntro() {
+  if (!window.gsap || reducedMotion) return;
+  homeIntroTimeline = gsap.timeline({ defaults: { ease: 'power2.out' } })
+    .fromTo('.home-head h1', { autoAlpha: 0, y: 10, filter: 'blur(8px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: .7, ease: 'power2.out' })
+    .from('.home-head p', { autoAlpha: 0, y: 10, duration: .4, clearProps: 'transform,opacity,visibility' }, '<.12')
+    .from('.stats .stat', { autoAlpha: 0, y: 10, duration: .45, stagger: .08, clearProps: 'transform,opacity,visibility' }, '<.05')
+    .from('.toolbar', { autoAlpha: 0, y: 10, duration: .4, clearProps: 'transform,opacity,visibility' }, '<.08');
+  heroRayTween = gsap.to('.hero-rays i', { rotation: '+=3', opacity: .38, duration: 7, stagger: 1.1, repeat: -1, yoyo: true, ease: 'sine.inOut', transformOrigin: '50% 0%' });
+}
+function stopHomeMotion() {
+  if (homeIntroTimeline) { homeIntroTimeline.kill(); homeIntroTimeline = null; }
+  if (heroRayTween) { heroRayTween.kill(); heroRayTween = null; }
+}
+function animateCounters() {
+  if (!window.gsap || reducedMotion) return;
+  $$('.stat b[data-count]').forEach(el => {
+    const target = Number(el.dataset.count);
+    if (!Number.isFinite(target) || target <= 0) return;
+    const counter = { value: 0 };
+    gsap.to(counter, {
+      value: target, duration: .9, ease: 'power2.out',
+      onUpdate: () => { el.textContent = Math.round(counter.value).toLocaleString('ar-OM'); },
+      onComplete: () => { el.textContent = target.toLocaleString('ar-OM'); }
+    });
+  });
+}
+function animateGrid(g, enabled) {
+  if (!enabled || !window.gsap || !window.ScrollTrigger || reducedMotion) return;
+  gsap.registerPlugin(ScrollTrigger);
+  gridMotionContext = gsap.context(() => {
+    $$('.group', g).forEach(group => {
+      const heading = $('.group-h', group);
+      if (!heading) return;
+      gsap.fromTo(heading, { autoAlpha: 0, y: 14 }, {
+        autoAlpha: 1, y: 0, duration: .45, ease: 'power2.out',
+        scrollTrigger: { trigger: group, start: 'top 88%', once: true },
+        onComplete: () => gsap.set(heading, { clearProps: 'transform,opacity,visibility' })
+      });
+    });
+    const tiles = $$('.tile', g);
+    if (tiles.length) ScrollTrigger.batch(tiles, {
+      interval: .12, batchMax: 12, start: 'top 92%', once: true,
+      onEnter: batch => gsap.fromTo(batch, { autoAlpha: 0, y: 20, scale: .97 }, {
+        autoAlpha: 1, y: 0, scale: 1, duration: .55, ease: 'power3.out', stagger: .055, overwrite: true,
+        onComplete: () => gsap.set(batch, { clearProps: 'transform,opacity,visibility' })
+      })
+    });
+    const empty = $('.empty', g);
+    if (empty) gsap.fromTo(empty, { autoAlpha: 0, y: 14 }, {
+      autoAlpha: 1, y: 0, duration: .45, ease: 'power2.out',
+      scrollTrigger: { trigger: empty, start: 'top 90%', once: true },
+      onComplete: () => gsap.set(empty, { clearProps: 'transform,opacity,visibility' })
+    });
+  }, g);
 }
 function renderStats() {
   const el = $('#stats'); if (!el) return;
   const w = new Set(S.schools.map(s => s.wilayah).filter(Boolean)).size;
-  el.innerHTML = `<div class="stat"><b>${S.schools.length.toLocaleString('ar-OM')}</b><span>مدرسة</span></div><div class="stat"><b>${w.toLocaleString('ar-OM')}</b><span>ولاية</span></div>`;
+  const count = value => reducedMotion || !window.gsap ? `<b>${value.toLocaleString('ar-OM')}</b>` : `<b data-count="${value}">٠</b>`;
+  el.innerHTML = `<div class="stat">${count(S.schools.length)}<span>مدرسة</span></div><div class="stat">${count(w)}<span>ولاية</span></div>`;
+  animateCounters();
 }
 function renderChips() {
   const el = $('#chips'); if (!el) return;
@@ -716,20 +809,27 @@ function tile(s) {
   return `<button class="tile" data-act="school" data-code="${esc(s.code)}" style="--tone:var(--${t});--tone-soft:var(--${t}-soft)">
     <span class="badge">${ic('school', 32, 1.6)}</span><span class="t-name">${esc(s.name)}</span><span class="t-meta">${esc(s.code)}${s.period ? ' · ' + esc(s.period) : ''}</span></button>`;
 }
-function renderGrid() {
+function renderGrid(animate = true) {
+  if (gridMotionContext) { gridMotionContext.revert(); gridMotionContext = null; }
   const g = $('#grid'); if (!g) return;
   if (!S.loaded) { g.innerHTML = '<div class="empty">جارٍ تحميل المدارس…</div>'; return; }
   if (!S.schools.length) {
     g.innerHTML = `<div class="empty"><span class="e-icon">${ic('school', 40, 1.5)}</span><h3>لا توجد مدارس بعد</h3>
       ${can('admin') ? `<p>ابدأ باستيراد ملف Excel يحتوي على: الولاية، رمز المدرسة، اسم المدرسة، المرحلة، الجنس، الفترة.</p><button class="btn primary" data-act="settings">${ic('upload', 18)} استيراد المدارس</button>` : '<p>سيضيف مدير الدليل المدارس قريباً.</p>'}</div>`;
+    animateGrid(g, animate);
     return;
   }
   const list = filtered();
-  if (!list.length) { g.innerHTML = `<div class="empty"><span class="e-icon">${ic('search', 36)}</span><h3>لا توجد نتائج</h3><p>لا توجد مدرسة تطابق كل الفلاتر المختارة معاً${S.fg || S.fp ? ` (${[S.fw, S.fg, S.fp].filter(Boolean).join(' + ')})` : ''}.</p><button class="btn primary" data-act="clearf">${ic('school', 18)} عرض كل المدارس</button></div>`; return; }
+  if (!list.length) {
+    g.innerHTML = `<div class="empty"><span class="e-icon">${ic('search', 36)}</span><h3>لا توجد نتائج</h3><p>لا توجد مدرسة تطابق كل الفلاتر المختارة معاً${S.fg || S.fp ? ` (${[S.fw, S.fg, S.fp].filter(Boolean).join(' + ')})` : ''}.</p><button class="btn primary" data-act="clearf">${ic('school', 18)} عرض كل المدارس</button></div>`;
+    animateGrid(g, animate);
+    return;
+  }
   const groups = new Map();
   list.forEach(s => { const k = s.wilayah || 'بدون ولاية'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); });
   g.innerHTML = `<div class="legend" style="padding-block:4px 6px"><span><i style="background:var(--mixed)"></i>مشترك</span><span><i style="background:var(--boys)"></i>ذكور</span><span><i style="background:var(--girls)"></i>إناث</span></div>`
     + [...groups].map(([w, arr]) => `<section class="group"><h2 class="group-h"><span>${esc(w)}</span><span class="cnt">${arr.length}</span></h2><div class="tiles">${arr.map(tile).join('')}</div></section>`).join('');
+  animateGrid(g, animate);
 }
 
 /* ================= school / orbit ================= */
@@ -768,19 +868,25 @@ function subscribeInfo(code) { if (S.infoCode !== String(code)) loadInfo(code); 
 function unsubInfo() { S.infoCode = null; S.infoReq++; S.infoLoading = false; }
 function openSchool(code, path = []) {
   if (!getSchool(code)) return;
+  stopHomeMotion();
   subscribeInfo(code);
   S.view = 'school'; S.school = code; S.path = path;
   renderSchoolView(true);
-  window.scrollTo({ top: 0 });
+  scrollToTop();
 }
 
-/* ---------- school focus on the home page ---------- */
+/* ---------- school focus on the home page: every level opens as a ring around its parent ---------- */
 function focusSchool(code, anim = true) {
   const s = getSchool(code); if (!s) return closeFocus();
   const tile = $(`.tile[data-code="${CSS.escape(String(code))}"]`);
   if (!tile) return closeFocus();
-  S.focus = code; subscribeInfo(code);
-  const rs = visRoots(), n = rs.length;
+  if (String(S.focus) !== String(code)) S.focusPath = [];
+  S.focus = code; S.school = code; subscribeInfo(code);
+  const fp = S.focusPath;
+  while (fp.length && (!getNode(fp) || isLeaf(getNode(fp)))) fp.pop();
+  const node = fp.length ? getNode(fp) : null;
+  const root = fp.length ? rootOf(fp[0]) : null;
+  const rs = node ? kids(node) : visRoots(), n = rs.length;
   const small = window.innerWidth < 560;
   const sItem = small ? 62 : 80, c = small ? 120 : 146, lab = 46;
   const R = Math.max(c / 2 + sItem / 2 + lab, n ? (n * sItem * 2) / (2 * Math.PI) : 0);
@@ -790,31 +896,49 @@ function focusSchool(code, anim = true) {
   const b = tile.querySelector('.badge').getBoundingClientRect();
   const cx = Math.min(Math.max(b.left + b.width / 2, half + 8), window.innerWidth - half - 8);
   const cy = Math.min(Math.max(b.top + b.height / 2, half + 70), window.innerHeight - half - 8);
-  const t = genderTone(s.gender);
+  const ctone = root ? root.tone : genderTone(s.gender);
   const lf = small ? 12.5 : 14;
+  const active = S.sheet ? S.sheet.id : null;
   const pos = rs.map((_, i) => { const a = angleAt(i, n); return { x: Math.round(Math.cos(a) * R), y: Math.round(Math.sin(a) * R) }; });
-  const lines = rs.map((r, i) => { const p = pos[i]; const len = Math.round(Math.hypot(p.x, p.y)); return `<line x1="0" y1="0" x2="${p.x}" y2="${p.y}" style="--len:${len};--d:${i * 50}ms;--tone:var(--${r.tone})"/>`; }).join('');
-  const items = rs.map((r, i) => { const p = pos[i]; const cnt = countIn(r); return `<button class="orbit-item branch" data-act="root" data-id="${esc(r.id)}"
-      style="--x:${p.x}px;--y:${p.y}px;--s:${sItem}px;--d:${90 + i * 50}ms;--lf:${lf}px;--tone:var(--${r.tone});--tone-soft:var(--${r.tone}-soft)" aria-label="${esc(r.name)}">
-      <span class="bubble">${ic(r.icon || 'folder', Math.round(sItem * 0.42), 1.6)}</span>${cnt ? `<span class="o-count">${cnt.toLocaleString('ar-OM')}</span>` : ''}
-      <span class="o-label">${esc(r.name)}</span></button>`; }).join('');
+  const lines = rs.map((x, i) => { const p = pos[i]; const len = Math.round(Math.hypot(p.x, p.y)); return `<line x1="0" y1="0" x2="${p.x}" y2="${p.y}" style="--len:${len};--d:${i * 50}ms;--tone:var(--${(root || x).tone})"/>`; }).join('');
+  const items = rs.map((x, i) => {
+    const p = pos[i], tone = (root || x).tone, leaf = isLeaf(x), cnt = countIn(x);
+    return `<button class="orbit-item ${leaf && fp.length ? 'leaf' : 'branch'} ${active === x.id ? 'active' : ''}" data-act="fnode" data-id="${esc(x.id)}"
+      style="--x:${p.x}px;--y:${p.y}px;--s:${sItem}px;--d:${90 + i * 50}ms;--lf:${lf}px;--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="${esc(x.name)}">
+      <span class="bubble">${ic(x.icon || (root ? root.icon : 'folder'), Math.round(sItem * 0.42), 1.6)}</span>${cnt ? `<span class="o-count">${cnt.toLocaleString('ar-OM')}</span>` : ''}
+      ${leaf && fp.length ? `<span class="o-kind" title="يعرض المعلومات">${ic('doc', 12, 2)}</span>` : ''}
+      <span class="o-label">${esc(x.name)}</span></button>`; }).join('');
   const hint = n ? '' : `<div class="orbit-hint" style="background:var(--surface);border-radius:12px;padding:8px">لا توجد أقسام متاحة بعد.</div>`;
+  const center = node
+    ? `${ic(node.icon || root.icon || 'folder', small ? 24 : 28, 1.6)}<span class="c-name">${esc(node.name)}</span>
+       <span class="c-meta">${esc(s.name)}</span><span class="c-up">${ic('up', 11, 2)} رجوع</span>`
+    : `${ic('school', small ? 24 : 28, 1.6)}<span class="c-name">${esc(s.name)}</span>
+       <span class="c-meta">${esc(s.code)}${s.period ? ' · ' + esc(s.period) : ''}</span><span class="c-up">${ic('x', 11, 2)} إغلاق</span>`;
   $('#overlay').innerHTML = `<div class="focus-scrim" data-act="unfocus"></div>
     <div class="focus-wrap" dir="rtl" style="left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) scale(${k.toFixed(3)})">
       <div class="orbit ${anim ? '' : 'still'}" style="width:${size}px;height:${size}px;--c:${c}px">
         <svg class="orbit-lines" viewBox="${-half0} ${-half0} ${size} ${size}"><circle class="ring spin" r="${R}"/>${lines}</svg>
-        <button class="orbit-center focus-center" data-act="unfocus" style="--tone:var(--${t});--cf:${small ? 14 : 16}px" title="إغلاق">
-          ${ic('school', small ? 24 : 28, 1.6)}<span class="c-name">${esc(s.name)}</span>
-          <span class="c-meta">${esc(s.code)}${s.period ? ' · ' + esc(s.period) : ''}</span>
-          <span class="c-up">${ic('x', 11, 2)} إغلاق</span></button>
+        <button class="orbit-center focus-center" data-act="fup" style="--tone:var(--${ctone});--cf:${small ? 14 : 16}px" title="${node ? 'رجوع' : 'إغلاق'}">${center}</button>
         ${items}${hint}</div></div>`;
   S.focusGuard = Date.now() + 400;
 }
-function closeFocus() { if (!S.focus) return; S.focus = null; $('#overlay').innerHTML = ''; if (S.view === 'home') unsubInfo(); }
-function enterRoot(id) {
-  const code = S.focus; const r = getNode([id]); if (!code || !r) return;
-  S.focus = null; $('#overlay').innerHTML = '';
-  if (isLeaf(r)) { openSchool(code, []); openSheet(r); } else openSchool(code, [id]);
+function closeFocus() {
+  if (!S.focus) return;
+  closeSheet();
+  S.focus = null; S.focusPath = []; $('#overlay').innerHTML = '';
+  if (S.view === 'home') { S.school = null; unsubInfo(); }
+}
+function focusNode(id) {
+  const fp = S.focusPath;
+  const parent = fp.length ? getNode(fp) : null;
+  const x = (parent ? kids(parent) : visRoots()).find(c => c.id === id); if (!x) return;
+  if (isLeaf(x)) { S.path = fp.slice(); openSheet(x); return; }
+  closeSheet(); S.focusPath = [...fp, id]; focusSchool(S.focus, true);
+}
+function focusUp() {
+  if (S.sheet) return closeSheet();
+  if (!S.focusPath.length) return closeFocus();
+  S.focusPath.pop(); focusSchool(S.focus, true);
 }
 function backToSchool(code) {
   goHome();
@@ -824,7 +948,7 @@ function backToSchool(code) {
   S.focusGuard = Date.now() + 600;
   setTimeout(() => focusSchool(code), 60);
 }
-window.addEventListener('scroll', () => { if (S.focus && Date.now() > S.focusGuard) closeFocus(); }, { passive: true });
+window.addEventListener('scroll', () => { if (S.focus && !S.sheet && Date.now() > S.focusGuard) closeFocus(); }, { passive: true });
 
 function renderSchoolView(anim) {
   const s = getSchool(S.school); if (!s) return goHome();
@@ -848,7 +972,7 @@ function renderSchoolView(anim) {
 }
 
 function renderOrbit(anim) {
-  const st = $('#stage'); if (!st) return;
+  const st = $('#stage'); if (!st) { if (S.focus && S.view === 'home') focusSchool(S.focus, false); return; }
   const s = getSchool(S.school); if (!s) return;
   const W = st.clientWidth || 360;
   const top = st.getBoundingClientRect().top + window.scrollY;
@@ -936,7 +1060,7 @@ function goUp() {
 
 /* ================= info sheet ================= */
 function openSheet(node) { S.sheet = { id: node.id }; S.composing = null; renderSheet(); renderOrbit(false); }
-function closeSheet() { if (!S.sheet) return; S.sheet = null; S.composing = null; $('#overlay').innerHTML = ''; if (S.view === 'school') renderOrbit(false); }
+function closeSheet() { if (!S.sheet) return; S.sheet = null; S.composing = null; $('#sheetHost').innerHTML = ''; renderOrbit(false); }
 function sheetNode() { if (!S.path.length) return visRoots().find(r => r.id === S.sheet.id); const n = getNode(S.path); return n && kids(n).find(c => c.id === S.sheet.id); }
 function sheetItems() { return (S.info[S.sheet.id] && S.info[S.sheet.id].items) || []; }
 
@@ -950,7 +1074,7 @@ function renderSheet() {
   const body = (S.composing && S.composing.type === 'text' && !S.composing.id ? composer() : '')
     + (items.length ? items.map(it => S.composing && S.composing.id === it.id ? composer(it) : itemCard(it, ed)).join('')
       : (S.composing ? '' : S.infoLoading ? '<div class="empty">جارٍ تحميل المعلومات…</div>' : `<div class="empty"><span class="e-icon" style="background:var(--${root.tone}-soft);color:var(--${root.tone})">${ic(node.icon || 'doc', 36)}</span><h3>لا توجد معلومات بعد</h3><p>${ed ? 'أضف نصاً أو صورة أو مستنداً لهذا القسم.' : 'لم تُضف معلومات لهذا القسم حتى الآن.'}</p></div>`));
-  $('#overlay').innerHTML = `<div class="scrim" data-act="closesheet"></div>
+  $('#sheetHost').innerHTML = `<div class="scrim" data-act="closesheet"></div>
     <aside class="sheet" dir="rtl" role="dialog" aria-label="${esc(node.name)}" style="--tone:var(--${root.tone});--tone-soft:var(--${root.tone}-soft)">
       <div class="sheet-head"><span class="s-icon">${ic(node.icon || 'doc', 24)}</span>
         <div style="flex:1;min-width:0"><h2>${esc(node.name)}</h2><small>${esc(s ? s.name : '')} · ${esc(trail)}</small></div>
@@ -960,7 +1084,7 @@ function renderSheet() {
         <button class="btn sm" data-act="add-image">${ic('image', 16)} صورة</button>
         <button class="btn sm" data-act="add-doc">${ic('doc', 16)} مستند</button>
         <span id="upState" style="font-size:13px;color:var(--muted);align-self:center"></span></div>` : ''}
-      <div class="sheet-body" id="sheetBody">${body}</div></aside>`;
+      <div class="sheet-body" id="sheetBody" data-lenis-prevent>${body}</div></aside>`;
   hydrateBlobs();
   const ta = $('#cText'); if (ta) ta.focus();
 }
@@ -1051,7 +1175,7 @@ $('#fImage').addEventListener('change', e => { const f = [...e.target.files]; e.
 $('#fDoc').addEventListener('change', e => { const f = [...e.target.files]; e.target.value = ''; handleUpload(f, 'doc'); });
 
 /* ================= settings panel ================= */
-function openPanel(tab) { $('.menu')?.remove(); closeSheet(); S.panel = true; if (tab) S.tab = tab; renderPanel(); }
+function openPanel(tab) { $('.menu')?.remove(); closeFocus(); closeSheet(); S.panel = true; if (tab) S.tab = tab; renderPanel(); }
 function closePanel() { S.panel = null; S.importRows = null; $('#overlay').innerHTML = ''; if (S.view === 'school') renderSchoolView(false); else { renderChips(); renderGrid(); renderStats(); } }
 function renderPanelSafe() { const a = document.activeElement; if (a && $('.panel') && $('.panel').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { a.addEventListener('blur', () => S.panel && renderPanel(), { once: true }); return; } renderPanel(); }
 function renderPanel() {
@@ -1060,7 +1184,7 @@ function renderPanel() {
   $('#overlay').innerHTML = `<div class="panel" dir="rtl" role="dialog" aria-label="الإعدادات">
     <div class="panel-head"><div class="wrap"><span style="color:var(--accent)">${ic('gear', 22)}</span><h2>الإعدادات</h2><button class="icon-btn" data-act="closepanel" aria-label="إغلاق">${ic('x', 20)}</button></div>
       <div class="wrap"><div class="tabs">${tabs.map(([k, l, i]) => `<button class="tab ${S.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}">${ic(i, 18)} ${l}</button>`).join('')}</div></div></div>
-    <div class="panel-body"><div class="wrap" id="panelBody">${S.tab === 'schools' ? tabSchools() : S.tab === 'sections' ? tabSections() : tabUsers()}</div></div></div>`;
+    <div class="panel-body" data-lenis-prevent><div class="wrap" id="panelBody">${S.tab === 'schools' ? tabSchools() : S.tab === 'sections' ? tabSections() : tabUsers()}</div></div></div>`;
   if (S.tab === 'schools') bindImport();
 }
 
@@ -1324,7 +1448,7 @@ function pinDialog(user, self) {
 let dialogActs = [];
 function openDialog(title, body, actions, cls = '') {
   dialogActs = actions;
-  $('#dialogs').innerHTML = `<div class="scrim top" data-act="dclose"></div><div class="dialog ${cls}" dir="rtl" role="dialog" aria-modal="true"><h3>${title}</h3><div>${body}</div>
+  $('#dialogs').innerHTML = `<div class="scrim top" data-act="dclose"></div><div class="dialog ${cls}" dir="rtl" role="dialog" aria-modal="true" data-lenis-prevent><h3>${title}</h3><div>${body}</div>
     <div class="d-acts">${actions.map((a, i) => a.href ? `<a class="btn ${a.cls || ''}" href="${a.href}" target="_blank" rel="noopener">${a.label}</a>` : `<button class="btn ${a.cls || ''}" data-act="dact" data-i="${i}">${a.label}</button>`).join('')}</div></div>`;
   const f = $('#dialogs input:not([type=checkbox]), #dialogs select'); if (f) f.focus();
   const form = $('#dialogs form'); if (form) form.addEventListener('submit', e => { e.preventDefault(); const p = actions.find(a => a.cls === 'primary'); if (p && p.fn) p.fn(); });
@@ -1335,7 +1459,7 @@ function confirmBox(msg, ok = 'تأكيد') {
 }
 let toastT;
 function toast(m) { $('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.dir = 'rtl'; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200); }
-function closeAll() { $('#overlay').innerHTML = ''; closeDialog(); S.sheet = null; S.panel = null; S.focus = null; }
+function closeAll() { $('#overlay').innerHTML = ''; $('#sheetHost').innerHTML = ''; closeDialog(); S.sheet = null; S.panel = null; S.focus = null; S.focusPath = []; }
 
 /* ================= event delegation ================= */
 document.addEventListener('click', async e => {
@@ -1346,7 +1470,8 @@ document.addEventListener('click', async e => {
     case 'home': closeAll(); goHome(); break;
     case 'school': focusSchool(el.dataset.code); break;
     case 'unfocus': closeFocus(); break;
-    case 'root': enterRoot(el.dataset.id); break;
+    case 'fnode': focusNode(el.dataset.id); break;
+    case 'fup': focusUp(); break;
     case 'clearf': S.fw = S.fg = S.fp = S.q = ''; if ($('#q')) $('#q').value = ''; renderChips(); renderGrid(); break;
     case 'fixvalues': saveSchools(S.schools).then(() => { S.rawSchools = clone(S.schools); toast('تم إصلاح جدول المدارس في Drive'); renderPanel(); }).catch(() => {}); break;
     case 'fp': S.fp = S.fp === el.dataset.v ? '' : el.dataset.v; renderChips(); renderGrid(); break;
