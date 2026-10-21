@@ -636,6 +636,8 @@ function renderLock() {
     <div class="pad">${keys}</div>
     <div class="lock-msg" id="lockMsg"></div>
     <p style="font-size:12px">يُحفظ الدخول على هذا الجهاز، فلا يُطلب الرقم مرة أخرى.</p>
+    <details style="font-size:12.5px;color:var(--muted);max-width:330px"><summary style="cursor:pointer;color:var(--accent)">نسيت الرقم السري؟</summary>
+      <p style="margin:8px 0 0;text-align:start">المحرر والمشاهد: اطلب من مدير الدليل رقماً جديداً من الإعدادات ← المستخدمون.<br>المدير: افتح مشروع الدليل في script.google.com، واكتب الرقم الجديد في الدالة <b dir="ltr">resetAdminPin</b> ثم شغّلها.</p></details>
   </div></div>`;
   drawDots();
   $$('.key', el).forEach(b => b.addEventListener('click', () => pinKey(b.dataset.k)));

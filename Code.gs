@@ -387,3 +387,26 @@ function setup() {
   Logger.log('المجلد: ' + rootFolder_().getUrl());
   Logger.log('جدول البيانات: ' + ss.getUrl());
 }
+
+/**
+ * إعادة تعيين الرقم السري للمدير عند نسيانه.
+ * 1) اكتب الرقم الجديد (4 إلى 8 أرقام) بين علامتي التنصيص في السطر التالي.
+ * 2) اختر الدالة resetAdminPin من القائمة أعلى المحرر واضغط «تشغيل».
+ * 3) أعد السطر إلى '' بعد الاستخدام حتى لا يبقى الرقم مكتوباً في الكود.
+ * لا يستطيع تشغيل هذه الدالة إلا صاحب حساب Google الذي يملك المشروع.
+ */
+function resetAdminPin() {
+  const NEW_PIN = '';
+  if (!/^\d{4,8}$/.test(NEW_PIN)) throw new Error('اكتب رقماً سرياً من 4 إلى 8 أرقام في NEW_PIN ثم شغّل الدالة مرة أخرى.');
+  withLock_(() => {
+    const users = readUsers_();
+    const h = hash_(NEW_PIN);
+    if (users.some(u => u.h === h && u.role !== 'admin')) throw new Error('هذا الرقم مستخدم لحساب آخر. اختر رقماً مختلفاً.');
+    let admin = users.find(u => u.role === 'admin');
+    if (!admin) { admin = { id: newId_(), name: 'المدير', role: 'admin', hidden: [], at: Date.now() }; users.push(admin); }
+    admin.h = h;
+    writeUsers_(users);
+    bump_();
+    Logger.log('تم تعيين الرقم السري الجديد للمدير «' + admin.name + '». ادخل به إلى التطبيق، ثم أعد NEW_PIN إلى \'\'.');
+  });
+}
