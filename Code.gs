@@ -13,21 +13,28 @@ const APP_TITLE = 'دليل المدارس';
 const MAX_FILE_MB = 10;            // أقصى حجم للمرفق الواحد
 const MAX_TEXT = 45000;            // أقصى طول للنص (حد خلية Google Sheets 50 ألف حرف)
 
-const SH = { schools: 'المدارس', sections: 'الأقسام', info: 'المعلومات', users: 'المستخدمون', notes: 'الملاحظات' };
+const SH = { schools: 'المدارس', sections: 'الأقسام', info: 'المعلومات', users: 'المستخدمون', notes: 'الملاحظات', accounts: 'حسابات المدارس' };
 const HEAD = {
   schools: ['الولاية', 'رمز المدرسة', 'اسم المدرسة', 'المرحلة', 'الجنس', 'الفترة'],
   sections: ['المعرف', 'القسم الأب', 'اسم القسم', 'الأيقونة', 'اللون', 'الترتيب'],
   info: ['رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'النوع', 'العنوان', 'النص',
-    'اسم الملف', 'معرف الملف', 'رابط الملف', 'الحجم', 'نوع الملف', 'أضافها', 'التاريخ'],
+    'اسم الملف', 'معرف الملف', 'رابط الملف', 'الحجم', 'نوع الملف', 'أضافها', 'التاريخ', 'مرئية للمدارس', 'المدارس المستهدفة'],
   users: ['المعرف', 'الاسم', 'الدور', 'بصمة الرقم السري', 'الأقسام المستثناة', 'تاريخ الإضافة'],
   notes: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'عنوان المعلومة',
-    'نص الملاحظة', 'كاتبها', 'معرف الكاتب', 'دور الكاتب', 'التاريخ', 'قرأها']
+    'نص الملاحظة', 'كاتبها', 'معرف الكاتب', 'دور الكاتب', 'التاريخ', 'قرأها'],
+  accounts: ['رمز المدرسة', 'اسم المدرسة', 'بصمة كلمة المرور', 'حالة كلمة المرور', 'حالة الحساب', 'آخر دخول', 'تاريخ تغيير كلمة المرور']
 };
+// أعمدة جدول حسابات المدارس (تبدأ من 0)
+const A = { code: 0, sname: 1, h: 2, pw: 3, status: 4, last: 5, changed: 6 };
+const PW = { def: 'افتراضية', changed: 'تم تغييرها', reset: 'أُعيد تعيينها' };
+const ST = { active: 'مفعّل', disabled: 'موقوف' };
+// من يرى المعلومة من حسابات المدارس
+const AUD = { all: 'جميع المدارس', list: 'مدارس محددة' };
 // أعمدة جدول الملاحظات (تبدأ من 0)
 const N = { id: 0, code: 1, sname: 2, leaf: 3, path: 4, item: 5, ititle: 6, text: 7, by: 8, byId: 9, role: 10, at: 11, readBy: 12 };
 const TEXT_TYPES = { text: true, mindmap: true };
 // أعمدة جدول المعلومات (تبدأ من 0)
-const I = { code: 0, sname: 1, leaf: 2, path: 3, id: 4, type: 5, title: 6, text: 7, fname: 8, fid: 9, furl: 10, size: 11, mime: 12, by: 13, at: 14 };
+const I = { code: 0, sname: 1, leaf: 2, path: 3, id: 4, type: 5, title: 6, text: 7, fname: 8, fid: 9, furl: 10, size: 11, mime: 12, by: 13, at: 14, aud: 15, tgt: 16 };
 
 /* ===================== صفحة التطبيق ===================== */
 function doGet() {
@@ -84,10 +91,16 @@ function sheet_(k) {
     sh.getRange(1, 1, 1, HEAD[k].length).setValues([HEAD[k]]).setFontWeight('bold').setBackground('#D5EDE8');
     sh.setFrozenRows(1);
     sh.setRightToLeft(true);
-    if (k === 'notes') sh.getRange('B:B').setNumberFormat('@');
+    if (k === 'notes' || k === 'accounts') sh.getRange(k === 'notes' ? 'B:B' : 'A:A').setNumberFormat('@');
+  }
+  if (k === 'info' && !INFO_HEAD_OK_) {
+    const h = sh.getRange(1, I.aud + 1, 1, 2);
+    if (String(h.getValues()[0][0]) !== HEAD.info[I.aud]) { h.setValues([[HEAD.info[I.aud], HEAD.info[I.tgt]]]).setFontWeight('bold').setBackground('#D5EDE8'); sh.getRange(2, I.tgt + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@'); }
+    INFO_HEAD_OK_ = true;
   }
   return sh;
 }
+let INFO_HEAD_OK_ = false;
 function rows_(k, display) {
   const sh = sheet_(k); const n = sh.getLastRow();
   if (n < 2) return [];
@@ -159,15 +172,133 @@ function newSession_(u) {
   props_().setProperty('t:' + token, JSON.stringify({ uid: u.id, h: u.h }));
   return token;
 }
-function auth_(token, need) {
+function auth_(token, need, allowMustChange) {
   const raw = token && props_().getProperty('t:' + token);
   if (!raw) throw new Error('AUTH');
   const s = JSON.parse(raw);
+  if (s.school) {
+    const su = schoolUser_(s.school);
+    if (!su || su.disabled || su.h !== s.h) { props_().deleteProperty('t:' + token); throw new Error('AUTH'); }
+    if (su.mustChange && !allowMustChange) throw new Error('MUST_CHANGE');
+    if (need) throw new Error('FORBIDDEN');   // حساب المدرسة لا يعدّل شيئاً
+    return su;
+  }
   const u = readUsers_().find(x => x.id === s.uid);
   if (!u || u.h !== s.h) { props_().deleteProperty('t:' + token); throw new Error('AUTH'); }
-  if (need === 'edit' && u.role === 'viewer') throw new Error('FORBIDDEN');
+  if (need === 'edit' && u.role !== 'admin' && u.role !== 'editor') throw new Error('FORBIDDEN');
   if (need === 'admin' && u.role !== 'admin') throw new Error('FORBIDDEN');
   return u;
+}
+
+/* ---------- حسابات المدارس ----------
+ * لكل مدرسة في ورقة «المدارس» حساب تلقائي: اسم المستخدم = رمز المدرسة.
+ * ما دامت كلمة المرور «افتراضية» أو «أُعيد تعيينها» فكلمة المرور المؤقتة هي رمز المدرسة، ويُطلب تغييرها عند الدخول.
+ * لا تُحفظ كلمة المرور نفسها، بل بصمتها فقط. */
+function schoolRows_() {
+  return rows_('schools', true).filter(r => String(r[1]).trim() && String(r[2]).trim())
+    .map(r => ({ wilayah: String(r[0]).trim(), code: String(r[1]).trim(), name: String(r[2]).trim(), stage: String(r[3]).trim(), gender: String(r[4]).trim(), period: String(r[5]).trim() }));
+}
+function readAccounts_() {
+  const out = {};
+  if (sheet_('accounts').getLastRow() < 2) return out;
+  rows_('accounts').forEach((r, i) => { const c = String(r[A.code]).trim(); if (c) out[c] = { row: i + 2, h: String(r[A.h] || ''), pw: String(r[A.pw] || PW.def), status: String(r[A.status] || ST.active), last: r[A.last] instanceof Date ? r[A.last].getTime() : 0 }; });
+  return out;
+}
+function saveAccount_(code, patch) {
+  const sh = sheet_('accounts'), acc = readAccounts_()[code];
+  const cur = acc ? sh.getRange(acc.row, 1, 1, HEAD.accounts.length).getValues()[0] : [code, schoolName_(code), '', PW.def, ST.active, '', ''];
+  Object.keys(patch).forEach(k => { cur[A[k]] = patch[k]; });
+  cur[A.code] = String(code); cur[A.sname] = schoolName_(code) || cur[A.sname];
+  if (acc) sh.getRange(acc.row, 1, 1, HEAD.accounts.length).setValues([cur]); else sh.appendRow(cur);
+}
+// مفتاح الجلسة يتغير مع كل تغيير أو إعادة تعيين لكلمة المرور، فتنتهي الجلسات القديمة تلقائياً
+function schoolUser_(code) {
+  code = String(code || '').trim();
+  const s = schoolRows_().find(x => x.code === code); if (!s) return null;
+  const acc = readAccounts_()[code];
+  const changed = acc && acc.pw === PW.changed;
+  return { id: 'school:' + code, name: s.name, role: 'school', school: code, hidden: [],
+    h: acc ? (acc.h || 'default') : 'default', mustChange: !changed, disabled: !!acc && acc.status === ST.disabled };
+}
+const schoolPwHash_ = (code, pw) => hash_('school:' + code + ':' + pw);
+function apiSchoolLogin(code, password) {
+  code = String(code || '').trim(); password = String(password || '');
+  const cache = CacheService.getScriptCache(), key = 'sfail:' + code;
+  if (Number(cache.get(key) || 0) >= 8) throw new Error('LOCKED');
+  const su = code && schoolUser_(code);
+  const acc = su && readAccounts_()[code];
+  const ok = su && (su.mustChange ? password === code : schoolPwHash_(code, password) === acc.h);
+  if (!ok) { cache.put(key, String(Number(cache.get(key) || 0) + 1), 600); Utilities.sleep(700); throw new Error('WRONG_PASSWORD'); }
+  if (su.disabled) throw new Error('DISABLED');
+  cache.remove(key);
+  withLock_(() => saveAccount_(code, { last: new Date() }));
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  props_().setProperty('t:' + token, JSON.stringify({ school: code, h: schoolUser_(code).h }));
+  return { token };
+}
+function apiSchoolChangePassword(token, newPw, currentPw) {
+  const su = auth_(token, null, true);
+  if (su.role !== 'school') throw new Error('FORBIDDEN');
+  newPw = String(newPw || '');
+  if (newPw.length < 6 || newPw === su.school) throw new Error('WEAK_PASSWORD');
+  if (!su.mustChange && schoolPwHash_(su.school, String(currentPw || '')) !== readAccounts_()[su.school].h) throw new Error('WRONG_PASSWORD');
+  return withLock_(() => {
+    const h = schoolPwHash_(su.school, newPw);
+    saveAccount_(su.school, { h, pw: PW.changed, changed: new Date() });
+    apiLogout(token);
+    const t = Utilities.getUuid() + Utilities.getUuid();
+    props_().setProperty('t:' + t, JSON.stringify({ school: su.school, h }));
+    return { token: t, ver: bump_() };
+  });
+}
+function apiSchoolAccounts(token) {
+  auth_(token, 'admin');
+  const accs = readAccounts_(), shared = {}; let all = 0;
+  rows_('info').forEach(r => { if (!r[I.id]) return; const a = String(r[I.aud] || ''); if (a === AUD.all) all++; else if (a === AUD.list) targets_(r).forEach(c => { shared[c] = (shared[c] || 0) + 1; }); });
+  return schoolRows_().map(s => { const a = accs[s.code];
+    return { code: s.code, name: s.name, wilayah: s.wilayah, status: a && a.status === ST.disabled ? 'disabled' : 'active',
+      pw: !a || a.pw === PW.def ? 'default' : a.pw === PW.reset ? 'reset' : 'changed', last: a ? a.last : 0, shared: all + (shared[s.code] || 0) }; });
+}
+function apiResetSchoolPassword(token, code) {
+  auth_(token, 'admin');
+  if (!schoolUser_(code)) throw new Error('NOT_FOUND');
+  return withLock_(() => { saveAccount_(String(code).trim(), { h: 'reset:' + Date.now(), pw: PW.reset }); return { ok: true }; });
+}
+function apiSetSchoolStatus(token, code, active) {
+  auth_(token, 'admin');
+  if (!schoolUser_(code)) throw new Error('NOT_FOUND');
+  return withLock_(() => { saveAccount_(String(code).trim(), { status: active ? ST.active : ST.disabled }); return { ok: true }; });
+}
+
+/* ---------- جمهور المعلومة من حسابات المدارس ---------- */
+const targets_ = r => String(r[I.tgt] || '').split(',').map(x => x.trim()).filter(String);
+function visibleToSchool_(r, code) {
+  const a = String(r[I.aud] || '');
+  return a === AUD.all || (a === AUD.list && targets_(r).indexOf(String(code)) >= 0);
+}
+// المعلومة تظهر في قسمها لدى مدرستها الأصلية، ولدى كل مدرسة شوركت معها
+const inSchool_ = (r, code) => String(r[I.code]) === String(code) || visibleToSchool_(r, code);
+// أقسام حساب المدرسة: فقط الأقسام التي فيها معلومات مشاركة معها
+function schoolRoots_(code, roots) {
+  const has = {};
+  rows_('info').forEach(r => { if (r[I.id] && visibleToSchool_(r, code)) has[String(r[I.leaf])] = true; });
+  const filter = list => list.map(n => {
+    if (!n.children.length) return has[n.id] ? n : null;
+    const ch = filter(n.children);
+    return ch.length ? Object.assign({}, n, { children: ch }) : (has[n.id] ? Object.assign({}, n, { children: [] }) : null);
+  }).filter(Boolean);
+  return filter(roots);
+}
+function apiSetAudience(token, code, leaf, itemId, mode, codes) {
+  const u = auth_(token, 'edit');
+  const known = {}; schoolRows_().forEach(s => { known[s.code] = true; });
+  const list = mode === 'list' ? (codes || []).map(c => String(c).trim()).filter(c => known[c]) : [];
+  if (mode === 'list' && !list.length) throw new Error('NO_SCHOOLS');
+  return withLock_(() => {
+    const row = findInfoRow_(itemId); if (!row) throw new Error('NOT_FOUND');
+    sheet_('info').getRange(row, I.aud + 1, 1, 2).setValues([[mode === 'all' ? AUD.all : mode === 'list' ? AUD.list : '', list.join(',')]]);
+    return leafResult_(u, code, leaf);
+  });
 }
 
 /* ---------- ما يُسمح للمستخدم برؤيته ---------- */
@@ -195,15 +326,21 @@ function rowToItem_(r) {
     at: r[I.at] instanceof Date ? r[I.at].getTime() : Number(r[I.at]) || 0 };
   if (TEXT_TYPES[it.type]) it.text = String(r[I.text] || '');
   else { it.name = String(r[I.fname]); it.fileId = String(r[I.fid]); it.url = String(r[I.furl]); it.size = Number(r[I.size]) || 0; it.mime = String(r[I.mime]); }
+  const a = String(r[I.aud] || '');
+  it.aud = a === AUD.all ? 'all' : a === AUD.list ? 'list' : '';
+  it.targets = targets_(r); it.home = String(r[I.code]); it.homeName = String(r[I.sname] || '');
   return it;
 }
-function infoFor_(code, allowed) {
-  const out = {};
+// u: المستخدم الحالي (لحساب المدرسة تُعرض المعلومات المشاركة معها فقط، وتُحذف بيانات المشاركة الداخلية)
+function infoFor_(code, allowed, u) {
+  const out = {}, school = u && u.role === 'school';
   rows_('info').forEach(r => {
-    if (String(r[I.code]) !== String(code) || !r[I.id]) return;
+    if (!r[I.id] || !(school ? visibleToSchool_(r, code) : inSchool_(r, code))) return;
     const leaf = String(r[I.leaf]);
     if (allowed && !allowed[leaf]) return;
-    (out[leaf] = out[leaf] || { items: [] }).items.push(rowToItem_(r));
+    const it = rowToItem_(r);
+    if (school) { delete it.url; delete it.targets; delete it.aud; delete it.home; delete it.homeName; }
+    (out[leaf] = out[leaf] || { items: [] }).items.push(it);
   });
   Object.keys(out).forEach(k => out[k].items.sort((a, b) => b.at - a.at));
   return out;
@@ -228,7 +365,7 @@ function newInfoRow_(u, code, leaf, item) {
   return r;
 }
 function leafResult_(u, code, leaf) {
-  const info = infoFor_(code, null);
+  const info = infoFor_(code, null, u);
   return { items: (info[leaf] && info[leaf].items) || [], ver: bump_() };
 }
 
@@ -255,11 +392,15 @@ function apiLogin(pin) {
 function apiLogout(token) { if (token) props_().deleteProperty('t:' + token); return true; }
 
 function apiBootstrap(token) {
-  const u = auth_(token);
+  const u = auth_(token, null, true);
   const roots = readSections_();
-  const schools = rows_('schools', true).filter(r => r[1] && r[2]).map(r => ({
-    wilayah: String(r[0]).trim(), code: String(r[1]).trim(), name: String(r[2]).trim(), stage: String(r[3]).trim(), gender: String(r[4]).trim(), period: String(r[5]).trim()
-  }));
+  const schools = schoolRows_();
+  if (u.role === 'school') return {
+    me: { id: u.id, name: u.name, role: 'school', school: u.school, mustChange: u.mustChange, hidden: [] },
+    config: { roots: u.mustChange ? [] : schoolRoots_(u.school, roots) },
+    schools: u.mustChange ? [] : schools.filter(x => x.code === u.school),
+    users: null, ver: ver_(), unreadNotes: 0, driveUrl: ''
+  };
   return {
     me: publicUser_(u),
     config: { roots: visibleRoots_(u, roots) },
@@ -270,12 +411,13 @@ function apiBootstrap(token) {
     driveUrl: u.role === 'admin' ? rootFolder_().getUrl() : ''
   };
 }
-function apiPoll(token) { auth_(token); return ver_(); }
+function apiPoll(token) { auth_(token, null, true); return ver_(); }
 
 /* ---------- الإحصائيات ---------- */
 // يعيد [رمز المدرسة، معرف القسم، النوع] لكل معلومة يُسمح للمستخدم برؤيتها
 function apiStats(token) {
   const u = auth_(token);
+  if (u.role === 'school') throw new Error('FORBIDDEN');
   const allowed = u.role === 'viewer' ? allowedLeaves_(u, readSections_()) : null;
   return rows_('info').filter(r => r[I.id] && (!allowed || allowed[String(r[I.leaf])]))
     .map(r => [String(r[I.code]), String(r[I.leaf]), String(r[I.type])]);
@@ -284,7 +426,7 @@ function apiStats(token) {
 /* ---------- الملاحظات ---------- */
 function notesRows_() { return sheet_('notes').getLastRow() < 2 ? [] : rows_('notes'); }
 function unreadCount_(u) {
-  if (u.role === 'viewer') return 0;
+  if (u.role === 'viewer' || u.role === 'school') return 0;
   return notesRows_().filter(r => r[N.id] && String(r[N.byId]) !== u.id && String(r[N.readBy] || '').split(',').indexOf(u.id) < 0).length;
 }
 function apiAddNote(token, code, leaf, itemId, text) {
@@ -293,14 +435,16 @@ function apiAddNote(token, code, leaf, itemId, text) {
   if (!text) throw new Error('NOT_FOUND');
   if (text.length > 5000) throw new Error('TEXT_TOO_LONG');
   if (u.role === 'viewer' && !allowedLeaves_(u, readSections_())[String(leaf)]) throw new Error('FORBIDDEN');
+  if (u.role === 'school' && String(code) !== u.school) throw new Error('FORBIDDEN');
   return withLock_(() => {
     const row = findInfoRow_(itemId); if (!row) throw new Error('NOT_FOUND');
     const ir = sheet_('info').getRange(row, 1, 1, HEAD.info.length).getValues()[0];
+    if (u.role === 'school' && !visibleToSchool_(ir, u.school)) throw new Error('FORBIDDEN');
     const label = String(ir[I.title] || ir[I.fname] || '') || ({ text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية' }[String(ir[I.type])] || 'معلومة');
     const out = new Array(HEAD.notes.length).fill('');
     out[N.id] = newId_(); out[N.code] = String(code); out[N.sname] = String(ir[I.sname] || schoolName_(code)); out[N.leaf] = String(leaf);
     out[N.path] = String(ir[I.path] || ''); out[N.item] = String(itemId); out[N.ititle] = label; out[N.text] = text;
-    out[N.by] = u.name; out[N.byId] = u.id; out[N.role] = u.role; out[N.at] = new Date(); out[N.readBy] = u.role === 'viewer' ? '' : u.id;
+    out[N.by] = u.name; out[N.byId] = u.id; out[N.role] = u.role; out[N.at] = new Date(); out[N.readBy] = u.role === 'viewer' || u.role === 'school' ? '' : u.id;
     sheet_('notes').appendRow(out);
     return { ver: bump_() };
   });
@@ -346,7 +490,8 @@ function apiDeleteNote(token, id) {
 
 function apiGetInfo(token, code) {
   const u = auth_(token);
-  return infoFor_(code, u.role === 'viewer' ? allowedLeaves_(u, readSections_()) : null);
+  if (u.role === 'school' && String(code) !== u.school) throw new Error('FORBIDDEN');
+  return infoFor_(code, u.role === 'viewer' ? allowedLeaves_(u, readSections_()) : null, u);
 }
 function apiAddText(token, code, leaf, title, text, kind) {
   const u = auth_(token, 'edit');
@@ -397,6 +542,7 @@ function apiGetFile(token, fileId) {
   const row = rows_('info').find(r => String(r[I.fid]) === String(fileId));
   if (!row) throw new Error('NOT_FOUND');
   if (u.role === 'viewer' && !allowedLeaves_(u, readSections_())[String(row[I.leaf])]) throw new Error('FORBIDDEN');
+  if (u.role === 'school' && !visibleToSchool_(row, u.school)) throw new Error('FORBIDDEN');
   const blob = DriveApp.getFileById(String(fileId)).getBlob();
   return { data: Utilities.base64Encode(blob.getBytes()), mime: blob.getContentType(), name: String(row[I.fname]) };
 }
@@ -460,6 +606,7 @@ function apiDeleteUser(token, id) {
 }
 function apiChangeMyPin(token, pin) {
   const me = auth_(token);
+  if (me.role === 'school') throw new Error('FORBIDDEN');
   checkPin_(pin);
   return withLock_(() => {
     const users = readUsers_(); const h = hash_(pin);
