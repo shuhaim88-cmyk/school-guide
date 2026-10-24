@@ -593,7 +593,7 @@ const S = {
   view: 'home', q: '', fw: '', fg: '',
   school: null, path: [], info: {},
   sheet: null, composing: null, panel: null, tab: 'schools', importRows: null, importMode: 'merge',
-  side: null, unread: 0, notes: null, notesFilter: 'all', stats: null, sf: { w: '', r: '', t: '', q: '', zero: false, all: false }, mm: null, flashItem: null,
+  side: null, unread: 0, notes: null, notesFilter: 'all', stats: null, sf: { w: '', r: '', t: '', q: '', zero: false, all: false, es: 'most', el: '', eall: false }, mm: null, flashItem: null,
   pin: ''
 };
 let gridMotionContext = null;
@@ -1471,6 +1471,38 @@ function statsBody() {
   let sRows = schools.map(s => ({ s, n: perSchool.get(String(s.code)) || 0 })).sort((a, b) => b.n - a.n || String(a.s.name).localeCompare(String(b.s.name), 'ar'));
   if (f.zero) sRows = sRows.filter(x => !x.n).sort((a, b) => String(a.s.wilayah).localeCompare(String(b.s.wilayah), 'ar'));
   const scMax = Math.max(0, ...sRows.map(x => x.n));
+  // empty sections per school: the topmost sections with no information at all in that school
+  const leafSet = new Map();
+  rows.forEach(([code, leaf]) => { if (!leafSet.has(code)) leafSet.set(code, new Set()); leafSet.get(code).add(leaf); });
+  const scopeRoots = S.config.roots.filter(rt => !f.r || rt.id === f.r);
+  const leaves = []; const leafWalk = (list, trail, tone) => list.forEach(n => { const t = trail.concat(n.name); if ((n.children || []).length) leafWalk(n.children, t, tone); else leaves.push({ id: n.id, label: t.join(' › '), tone }); });
+  scopeRoots.forEach(rt => leafWalk([rt], [], rt.tone));
+  const emptyOf = code => {
+    const have = leafSet.get(String(code)) || new Set(), out = [];
+    const full = n => (n.children || []).length ? n.children.every(full) : !have.has(n.id);
+    const walk2 = (list, trail, tone) => list.forEach(n => { const t = trail.concat(n.name); if (full(n)) out.push({ label: t.join(' › '), tone, whole: (n.children || []).length > 0 }); else walk2(n.children || [], t, tone); });
+    scopeRoots.forEach(rt => walk2([rt], [], rt.tone));
+    return { list: out, leaves: leaves.filter(l => !have.has(l.id)).length };
+  };
+  let eRows = schools.map(s => ({ s, e: emptyOf(s.code) })).filter(x => x.e.leaves && (!f.el || !(leafSet.get(String(x.s.code)) || new Set()).has(f.el)));
+  const byName = (a, b) => String(a.s.name).localeCompare(String(b.s.name), 'ar');
+  eRows.sort(f.es === 'least' ? (a, b) => a.e.leaves - b.e.leaves || byName(a, b) : f.es === 'name' ? byName : f.es === 'wilayah' ? (a, b) => String(a.s.wilayah).localeCompare(String(b.s.wilayah), 'ar') || byName(a, b) : (a, b) => b.e.leaves - a.e.leaves || byName(a, b));
+  const eShown = f.eall ? eRows : eRows.slice(0, 30);
+  const emptyCard = `<section class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="flex:1">الأقسام الفارغة في المدارس</h3>
+      <span style="color:var(--muted);font-size:13px">${eRows.length.toLocaleString('ar-OM')} مدرسة فيها أقسام فارغة</span></div>
+    <p class="d" style="margin:0">يظهر لكل مدرسة القسم الذي لم تُدخل فيه أي معلومة. إذا كان القسم الرئيسي أو الفرعي فارغاً بالكامل يظهر باسمه وحده.</p>
+    <div class="st-filters">
+      <div class="field"><label for="sfEs">الفرز</label><select class="input" id="sfEs" data-sf="es">${[['most', 'الأكثر أقساماً فارغة'], ['least', 'الأقل أقساماً فارغة'], ['name', 'اسم المدرسة'], ['wilayah', 'الولاية']].map(([k, l]) => `<option value="${k}" ${f.es === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field" style="flex-basis:260px"><label for="sfEl">المدارس التي ينقصها قسم</label><select class="input" id="sfEl" data-sf="el"><option value="">أي قسم</option>${leaves.map(l => `<option value="${esc(l.id)}" ${f.el === l.id ? 'selected' : ''}>${esc(l.label)}</option>`).join('')}</select></div>
+    </div>
+    <div class="table-wrap"><table class="st-table"><thead><tr><th>المدرسة</th><th>الولاية</th><th class="num">فارغة</th><th>الأقسام الفارغة</th></tr></thead><tbody>
+      ${eShown.map(x => `<tr><td><button class="btn ghost sm" style="padding:2px 6px" data-act="st-school" data-code="${esc(x.s.code)}">${esc(x.s.name)}</button> <span style="color:var(--muted);font-size:12px">${esc(x.s.code)}</span></td><td>${esc(x.s.wilayah)}</td>
+        <td class="num"><b>${x.e.leaves.toLocaleString('ar-OM')}</b> <span style="color:var(--muted);font-size:12px">من ${leaves.length.toLocaleString('ar-OM')}</span></td>
+        <td><div style="display:flex;flex-wrap:wrap;gap:4px">${x.e.list.map(e => `<span class="pill" style="font-size:12px;padding:1px 9px${e.whole ? ';font-weight:600' : ''}"><i style="width:8px;height:8px;border-radius:50%;background:var(--${e.tone})"></i>${esc(e.label)}${e.whole ? ' (كامل)' : ''}</span>`).join('')}</div></td></tr>`).join('')
+        || `<tr><td colspan="4">${leaves.length ? 'لا توجد أقسام فارغة في المدارس المختارة.' : 'لا توجد أقسام.'}</td></tr>`}
+    </tbody></table></div>
+    ${eRows.length > eShown.length ? `<div class="st-more"><button class="btn sm" data-act="sf-eall">عرض كل المدارس (${eRows.length.toLocaleString('ar-OM')})</button></div>` : ''}
+  </section>`;
   const shown = f.all ? sRows : sRows.slice(0, 40);
   return `<div class="st-filters" role="group" aria-label="فلترة الإحصائيات">
       <div class="field"><label for="sfW">الولاية</label><select class="input" id="sfW" data-sf="w"><option value="">كل الولايات</option>${wil.map(w => `<option ${f.w === w ? 'selected' : ''}>${esc(w)}</option>`).join('')}</select></div>
@@ -1499,7 +1531,8 @@ function statsBody() {
         ${shown.map(x => `<tr><td><button class="btn ghost sm" style="padding:2px 6px" data-act="st-school" data-code="${esc(x.s.code)}">${esc(x.s.name)}</button> <span style="color:var(--muted);font-size:12px">${esc(x.s.code)}</span></td><td>${esc(x.s.wilayah)}</td><td class="num"><b>${x.n.toLocaleString('ar-OM')}</b></td><td class="barcell">${bar(x.n, scMax)}</td></tr>`).join('') || '<tr><td colspan="4">لا توجد مدارس مطابقة.</td></tr>'}
       </tbody></table></div>
       ${sRows.length > shown.length ? `<div class="st-more"><button class="btn sm" data-act="sf-all">عرض كل المدارس (${sRows.length.toLocaleString('ar-OM')})</button></div>` : ''}
-    </section>`;
+    </section>
+    ${emptyCard}`;
 }
 
 /* ================= settings panel ================= */
@@ -1812,7 +1845,8 @@ document.addEventListener('click', async e => {
       try { const r = await call('apiDeleteNote', n.id); S.notes = S.notes.filter(x => x.id !== n.id); S.unread = r.unread; S.ver = r.ver; renderTop(); renderSide(); toast('تم حذف الملاحظة'); } catch {}
       break;
     }
-    case 'sf-clear': S.sf = { w: '', r: '', t: '', q: '', zero: S.sf.zero, all: false }; renderSide(); break;
+    case 'sf-clear': S.sf = { ...S.sf, w: '', r: '', t: '', q: '', el: '', all: false, eall: false }; renderSide(); break;
+    case 'sf-eall': S.sf.eall = true; renderSide(); break;
     case 'sf-all': S.sf.all = true; renderSide(); break;
     case 'st-school': { const code = el.dataset.code; closeSide(); S.fw = S.fg = S.fp = S.q = ''; backToSchool(code); break; }
     case 'note': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) noteDialog(it); break; }
@@ -1934,7 +1968,7 @@ document.addEventListener('input', e => {
 let sfT;
 document.addEventListener('change', e => {
   const el = e.target; const k = el.dataset.sf; if (!k || k === 'q') return;
-  S.sf[k] = el.type === 'checkbox' ? el.checked : el.value; S.sf.all = false; renderSide();
+  S.sf[k] = el.type === 'checkbox' ? el.checked : el.value; S.sf.all = false; S.sf.eall = false; renderSide();
 });
 document.addEventListener('submit', async e => {
   const f = e.target;
