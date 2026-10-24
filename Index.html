@@ -341,6 +341,77 @@ tr:last-child td{border-bottom:0}
   .badge{width:64px;height:64px}
   .sheet{width:100%}
 }
+/* ---------- top bar extras ---------- */
+.icon-btn{position:relative}
+.nbadge{position:absolute;top:-7px;inset-inline-end:-7px;min-width:20px;height:20px;border-radius:10px;padding:0 6px;display:grid;place-items:center;background:var(--danger);color:var(--surface);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--surface)}
+.theme-fab{position:fixed;z-index:5;top:calc(14px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px))}
+
+/* ---------- mind map ---------- */
+.mm-scroll{overflow:auto;border-radius:12px;background:var(--surface-2);padding:14px;max-height:420px}
+.mm{position:relative;margin-inline:auto}
+.mm svg{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.mm svg path{fill:none;stroke:color-mix(in srgb,var(--c) 55%,var(--line));stroke-width:2}
+.mm-n{position:absolute;display:grid;place-items:center;text-align:center;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:600;line-height:1.3;background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 2px var(--c);overflow:hidden}
+.mm-n span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.mm-n.d1{background:var(--c);color:var(--surface);box-shadow:0 8px 18px -12px var(--c)}
+.mm-n.d2{background:var(--cs)}
+.mm-n.root{border-radius:50%;background:var(--accent);color:var(--accent-ink);box-shadow:0 12px 26px -14px var(--accent),inset 0 0 0 5px color-mix(in srgb,var(--accent-ink) 18%,transparent);font-family:var(--f-display);font-size:14px;padding:12px}
+.mm-full{position:fixed;inset:0;z-index:72;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.mm-full .mm-full-head{display:flex;align-items:center;gap:12px;padding:12px max(16px,env(safe-area-inset-left,0px));background:var(--surface);border-bottom:1px solid var(--line)}
+.mm-full .mm-full-head h2{font-size:18px;flex:1;min-width:0}
+.mm-full .mm-scroll{flex:1;max-height:none;border-radius:0;padding:28px}
+.mm-ed{display:flex;flex-direction:column;gap:6px}
+.mm-ed-row{display:flex;align-items:center;gap:6px}
+.mm-ed-row .input{padding:7px 10px}
+.mm-ed-row .tb{width:32px;height:32px;flex:none;border:0;background:none;border-radius:8px;display:grid;place-items:center;color:var(--muted)}
+.mm-ed-row .tb:hover{background:var(--surface-2);color:var(--ink)}
+.mm-ed-row .tb.del:hover{color:var(--danger);background:var(--danger-soft)}
+.mm-ed-kids{margin-inline-start:16px;padding-inline-start:10px;border-inline-start:1.5px dashed var(--line);display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.mm-dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--c,var(--accent))}
+.mm-prev summary{cursor:pointer;color:var(--accent);font-size:13px;font-weight:600}
+.mm-prev .mm-scroll{margin-top:8px;max-height:300px}
+
+/* ---------- notes ---------- */
+.item-foot{display:flex;justify-content:space-between;align-items:end;gap:8px;flex-wrap:wrap}
+.item-foot .btns{display:flex;gap:4px;flex-wrap:wrap}
+.item.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.notes-list{display:flex;flex-direction:column;gap:10px}
+.note-card{border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:background .2s,border-color .2s}
+.note-card.unread{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.note-card .n-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.note-card .n-dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--line)}
+.note-card.unread .n-dot{background:var(--accent)}
+.note-card .n-by{font-weight:600}
+.note-card.unread .n-by{font-weight:700}
+.note-card .n-date{color:var(--muted);margin-inline-start:auto;font-variant-numeric:tabular-nums}
+.note-card .n-where{font-size:12.5px;color:var(--muted)}
+.note-card .n-where b{color:var(--ink);font-weight:600}
+.note-card .n-text{white-space:pre-wrap;word-break:break-word;line-height:1.8}
+.note-card.unread .n-text{font-weight:500}
+.note-card .n-acts{display:flex;gap:6px;flex-wrap:wrap}
+.state-pill{font-size:11.5px;border-radius:999px;padding:1px 9px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.note-card.unread .state-pill{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+/* ---------- statistics ---------- */
+.st-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.st-filters .field{flex:1 1 150px}
+.st-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.st-tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.st-tile b{display:block;font-family:var(--f-display);font-size:26px;line-height:1.2;font-variant-numeric:tabular-nums}
+.st-tile span{font-size:12.5px;color:var(--muted)}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px}
+.st-table td.num,.st-table th.num{text-align:end;font-variant-numeric:tabular-nums}
+.st-table td{white-space:normal}
+.st-table td.barcell{width:38%;min-width:90px}
+.bar{display:block;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px;background:var(--accent);min-width:2px}
+.bar.zero i{background:transparent}
+.st-sec td:first-child{padding-inline-start:calc(12px + var(--lv,0) * 18px)}
+.st-sec tr.lv0 td{font-weight:600}
+.st-more{display:flex;justify-content:center;padding-top:6px}
+.tone-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px;vertical-align:0}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition:none!important}.hero-rays i{opacity:.35}.btn.primary::after{animation:none!important}}
 </style>
 </head>
@@ -383,6 +454,16 @@ if (!reducedMotion && window.gsap && window.ScrollTrigger && window.Lenis) {
   gsap.ticker.lagSmoothing(0);
 }
 const scrollToTop = () => lenis ? lenis.scrollTo(0, { immediate: true }) : window.scrollTo({ top: 0 });
+
+/* ================= theme ================= */
+const THEME_KEY = 'schools-guide:theme';
+function applyTheme(t) { if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+try { applyTheme(JSON.parse(localStorage.getItem(THEME_KEY))); } catch {}
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; };
+function toggleTheme() { const t = isDark() ? 'light' : 'dark'; applyTheme(t); lsSet(THEME_KEY, t); $$('[data-act="theme"]').forEach(b => { b.innerHTML = themeIcon(); b.title = themeTitle(); b.setAttribute('aria-label', themeTitle()); }); }
+const themeIcon = () => ic(isDark() ? 'sun' : 'moon', 20);
+const themeTitle = () => isDark() ? 'التبديل إلى الثيم الفاتح' : 'التبديل إلى الثيم الغامق';
+const themeBtn = (cls = '') => `<button class="icon-btn ${cls}" data-act="theme" title="${themeTitle()}" aria-label="${themeTitle()}">${themeIcon()}</button>`;
 
 /* ================= icons ================= */
 const P = {
@@ -431,7 +512,14 @@ const P = {
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   chevUp:'<path d="M6 15l6-6 6 6"/>', chevDown:'<path d="M6 9l6 6 6-6"/>',
   sub:'<path d="M6 4v9a3 3 0 003 3h9M14 12l4 4-4 4"/>',
-  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>'
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  moon:'<path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/>',
+  inbox:'<path d="M3 13.5l2.5-8A2 2 0 017.4 4h9.2a2 2 0 011.9 1.5l2.5 8V18a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M3 13.5h5l1.5 2.5h5l1.5-2.5h5"/>',
+  note:'<path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H10l-4.5 4v-4H6a2 2 0 01-2-2z"/><path d="M8.5 8h7M8.5 11.5h5"/>',
+  mind:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18.5" r="2.5"/><circle cx="12" cy="18.5" r="2.5"/><circle cx="19" cy="18.5" r="2.5"/><path d="M12 7.5v8.5M12 11h-7v5M12 11h7v5"/>',
+  stats:'<path d="M4 20h16"/><rect x="5" y="11" width="3.2" height="7" rx="1"/><rect x="10.4" y="6" width="3.2" height="12" rx="1"/><rect x="15.8" y="13" width="3.2" height="5" rx="1"/>',
+  expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'
 };
 const PICKABLE = ['clipboard','table','layers','doc','folder','chart','map','building','desk','tools','key','bolt','water','bus','shield','calendar','people','id','user','book','star','flask','laptop','ball'];
 const ic = (n, s = 22, w = 1.7) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || P.folder}</svg>`;
@@ -505,6 +593,7 @@ const S = {
   view: 'home', q: '', fw: '', fg: '',
   school: null, path: [], info: {},
   sheet: null, composing: null, panel: null, tab: 'schools', importRows: null, importMode: 'merge',
+  side: null, unread: 0, notes: null, notesFilter: 'all', stats: null, sf: { w: '', r: '', t: '', q: '', zero: false, all: false }, mm: null, flashItem: null,
   pin: ''
 };
 let gridMotionContext = null;
@@ -561,7 +650,7 @@ async function boot() {
 }
 function applyBoot(d) {
   const was = S.me;
-  S.me = d.me; S.config = normConfig(d.config); S.users = d.users || []; S.ver = d.ver; S.driveUrl = d.driveUrl || '';
+  S.me = d.me; S.config = normConfig(d.config); S.users = d.users || []; S.ver = d.ver; S.driveUrl = d.driveUrl || ''; S.unread = d.unreadNotes || 0;
   S.rawSchools = d.schools || [];
   S.schools = S.rawSchools.map(fixRow).sort((a, b) => String(a.wilayah).localeCompare(String(b.wilayah), 'ar') || String(a.name).localeCompare(String(b.name), 'ar'));
   return was;
@@ -576,6 +665,7 @@ async function refresh() {
     const was = applyBoot(await api('apiBootstrap', S.token));
     if (!was || was.role !== S.me.role || JSON.stringify(was.hidden || []) !== JSON.stringify(S.me.hidden || [])) route();
     else { renderTop(); rerenderData(); }
+    if (S.side === 'inbox') loadNotes(); else if (S.side === 'stats') loadStats();
     if (S.infoCode) loadInfo(S.infoCode);
   } catch (e) { if (errCode(e) === 'AUTH') reportErr(e); }
 }
@@ -603,7 +693,7 @@ function route() {
 function renderLock() {
   const el = $('#lock');
   if (S.needsSetup) {
-    el.innerHTML = `<div class="lock"><div class="lock-card">${MARK}
+    el.innerHTML = `${themeBtn('theme-fab')}<div class="lock"><div class="lock-card">${MARK}
       <div><h1>دليل المدارس</h1><p>أول تشغيل: أنشئ حساب المدير. ستضيف بقية المستخدمين لاحقاً من الإعدادات.</p></div>
       <form class="setup" id="setupForm" autocomplete="off">
         <div class="field"><label for="suName">اسم المدير</label><input class="input" id="suName" required maxlength="60" placeholder="مثال: مروان البلوشي"></div>
@@ -630,7 +720,7 @@ function renderLock() {
   S.pin = '';
   const keys = [1,2,3,4,5,6,7,8,9].map(n => `<button class="key" data-k="${n}">${n}</button>`).join('')
     + `<button class="key fn" data-k="del" aria-label="حذف">${ic('backspace', 24)}</button><button class="key" data-k="0">0</button><button class="key ok" data-k="ok" aria-label="دخول">${ic('check', 26, 2)}</button>`;
-  el.innerHTML = `<div class="lock"><div class="lock-card">${MARK}
+  el.innerHTML = `${themeBtn('theme-fab')}<div class="lock"><div class="lock-card">${MARK}
     <div><h1>دليل المدارس</h1><p>أدخل الرقم السري للدخول</p></div>
     <div class="dots" id="dots"></div>
     <div class="pad">${keys}</div>
@@ -677,8 +767,10 @@ document.addEventListener('keydown', e => {
     if ($('#dialogs').children.length) return closeDialog();
     if ($('.lightbox')) return $('.lightbox').remove();
     if ($('.menu')) return $('.menu').remove();
+    if ($('.mm-full')) return $('.mm-full').remove();
     if (S.sheet) return closeSheet();
     if (S.focus) return focusUp();
+    if (S.side) return closeSide();
     if (S.panel) return closePanel();
     if (S.view === 'school') goUp();
   }
@@ -690,6 +782,9 @@ function renderTop() {
   $('#topbar').innerHTML = `
     <button class="brand" data-act="home" aria-label="الصفحة الرئيسية">${MARK}<span><b>دليل المدارس</b><small>معلومات المدارس في متناول يدك</small></span></button>
     <span class="spacer"></span>
+    ${themeBtn()}
+    ${can('edit') ? `<button class="icon-btn" data-act="inbox" title="الملاحظات" aria-label="الملاحظات${S.unread ? ` (${S.unread} غير مقروءة)` : ''}">${ic('inbox', 20)}${S.unread ? `<span class="nbadge">${S.unread > 99 ? '99+' : S.unread}</span>` : ''}</button>` : ''}
+    <button class="icon-btn" data-act="stats" title="الإحصائيات" aria-label="الإحصائيات">${ic('stats', 20)}</button>
     ${can('admin') ? `<button class="icon-btn" data-act="settings" title="الإعدادات" aria-label="الإعدادات">${ic('gear', 20)}</button>` : ''}
     <button class="user-chip" data-act="usermenu" aria-label="حسابي"><span class="u-name">${esc(S.me.name)}</span><span class="avatar">${esc(initials(S.me.name))}</span></button>`;
 }
@@ -1086,9 +1181,10 @@ function renderSheet() {
   const trail = S.path.length ? S.path.map((_, i) => getNode(S.path.slice(0, i + 1))?.name).filter(Boolean).join(' ← ') : node.name;
   const items = sheetItems();
   const ed = can('edit');
-  const body = (S.composing && S.composing.type === 'text' && !S.composing.id ? composer() : '')
-    + (items.length ? items.map(it => S.composing && S.composing.id === it.id ? composer(it) : itemCard(it, ed)).join('')
-      : (S.composing ? '' : S.infoLoading ? '<div class="empty">جارٍ تحميل المعلومات…</div>' : `<div class="empty"><span class="e-icon" style="background:var(--${root.tone}-soft);color:var(--${root.tone})">${ic(node.icon || 'doc', 36)}</span><h3>لا توجد معلومات بعد</h3><p>${ed ? 'أضف نصاً أو صورة أو مستنداً لهذا القسم.' : 'لم تُضف معلومات لهذا القسم حتى الآن.'}</p></div>`));
+  const draft = it => S.composing.type === 'mindmap' ? mmComposer() : composer(it);
+  const body = (S.composing && !S.composing.id ? draft() : '')
+    + (items.length ? items.map(it => S.composing && S.composing.id === it.id ? draft(it) : itemCard(it, ed)).join('')
+      : (S.composing ? '' : S.infoLoading ? '<div class="empty">جارٍ تحميل المعلومات…</div>' : `<div class="empty"><span class="e-icon" style="background:var(--${root.tone}-soft);color:var(--${root.tone})">${ic(node.icon || 'doc', 36)}</span><h3>لا توجد معلومات بعد</h3><p>${ed ? 'أضف نصاً أو صورة أو مستنداً أو خريطة ذهنية لهذا القسم.' : 'لم تُضف معلومات لهذا القسم حتى الآن.'}</p></div>`));
   $('#sheetHost').innerHTML = `<div class="scrim" data-act="closesheet"></div>
     <aside class="sheet" dir="rtl" role="dialog" aria-label="${esc(node.name)}" style="--tone:var(--${root.tone});--tone-soft:var(--${root.tone}-soft)">
       <div class="sheet-head"><span class="s-icon">${ic(node.icon || 'doc', 24)}</span>
@@ -1098,10 +1194,12 @@ function renderSheet() {
         <button class="btn sm" data-act="add-text">${ic('text', 16)} نص</button>
         <button class="btn sm" data-act="add-image">${ic('image', 16)} صورة</button>
         <button class="btn sm" data-act="add-doc">${ic('doc', 16)} مستند</button>
+        <button class="btn sm" data-act="add-mm">${ic('mind', 16)} خريطة ذهنية</button>
         <span id="upState" style="font-size:13px;color:var(--muted);align-self:center"></span></div>` : ''}
       <div class="sheet-body" id="sheetBody" data-lenis-prevent>${body}</div></aside>`;
   hydrateBlobs();
   const ta = $('#cText'); if (ta) ta.focus();
+  if (S.flashItem) { const card = $(`#sheetHost .item[data-item="${CSS.escape(S.flashItem)}"]`); if (card) { S.flashItem = null; card.classList.add('flash'); card.scrollIntoView({ block: 'center' }); } else if (!S.infoLoading) S.flashItem = null; }
 }
 function composer(it) {
   return `<form class="composer" id="composer"><input class="input" id="cTitle" placeholder="عنوان (اختياري)" value="${esc(it ? it.title : '')}" maxlength="120">
@@ -1109,20 +1207,28 @@ function composer(it) {
     <div class="row"><button type="button" class="btn ghost sm" data-act="cancel-compose">إلغاء</button><button class="btn primary sm">${ic('check', 16)} حفظ</button></div></form>`;
 }
 function itemCard(it, ed) {
+  const noteBtn = `<button class="btn ghost sm" data-act="note" data-id="${it.id}" title="أضف ملاحظة تصل إلى المحررين">${ic('note', 14)} ملاحظة</button>`;
+  if (it.type === 'mindmap') {
+    const acts2 = ed ? `<span class="acts"><button data-act="edit-item" data-id="${it.id}" title="تعديل" aria-label="تعديل">${ic('edit', 16)}</button><button class="del" data-act="del-item" data-id="${it.id}" title="حذف" aria-label="حذف">${ic('trash', 16)}</button></span>` : '';
+    return `<article class="item" data-item="${esc(it.id)}"><div class="item-top"><span class="k">${ic('mind', 15)}</span><b>${esc(it.title || 'خريطة ذهنية')}</b>${acts2}</div>
+      <div class="mm-scroll" data-lenis-prevent>${mindmapHTML(parseMM(it.text))}</div>
+      <div class="item-foot" style="margin-top:10px"><div class="item-meta" style="margin:0">${esc(it.by || '')}${it.by ? ' · ' : ''}${fmtDate(it.at)}</div>
+        <div class="btns"><button class="btn ghost sm" data-act="mm-full" data-id="${it.id}">${ic('expand', 14)} عرض كامل</button>${noteBtn}</div></div></article>`;
+  }
   const acts = ed ? `<span class="acts">${it.type === 'text' ? `<button data-act="edit-item" data-id="${it.id}" title="تعديل" aria-label="تعديل">${ic('edit', 16)}</button>` : ''}<button class="del" data-act="del-item" data-id="${it.id}" title="حذف" aria-label="حذف">${ic('trash', 16)}</button></span>` : '';
   const meta = `<div class="item-meta">${esc(it.by || '')}${it.by ? ' · ' : ''}${fmtDate(it.at)}</div>`;
-  if (it.type === 'text') return `<article class="item"><div class="item-top"><span class="k">${ic('text', 15)}</span><b>${esc(it.title || 'ملاحظة')}</b>${acts}</div>
-    <div class="item-text">${esc(it.text)}</div><div style="display:flex;justify-content:space-between;align-items:end">${meta}<button class="btn ghost sm" data-act="copy" data-id="${it.id}">${ic('copy', 14)} نسخ</button></div></article>`;
-  if (it.type === 'image') return `<article class="item"><div class="item-top"><span class="k">${ic('image', 15)}</span><b>${esc(it.title || it.name || 'صورة')}</b>${acts}</div>
+  if (it.type === 'text') return `<article class="item" data-item="${esc(it.id)}"><div class="item-top"><span class="k">${ic('text', 15)}</span><b>${esc(it.title || 'ملاحظة')}</b>${acts}</div>
+    <div class="item-text">${esc(it.text)}</div><div class="item-foot">${meta}<div class="btns"><button class="btn ghost sm" data-act="copy" data-id="${it.id}">${ic('copy', 14)} نسخ</button>${noteBtn}</div></div></article>`;
+  if (it.type === 'image') return `<article class="item" data-item="${esc(it.id)}"><div class="item-top"><span class="k">${ic('image', 15)}</span><b>${esc(it.title || it.name || 'صورة')}</b>${acts}</div>
     <button class="item-img" data-act="zoom" data-id="${it.id}"><img alt="${esc(it.name || '')}" data-file="${esc(it.fileId)}"></button>
-    <div style="display:flex;justify-content:space-between;align-items:end">${meta}<button class="btn ghost sm" data-act="dl" data-id="${it.id}">${ic('download', 14)} تنزيل</button></div></article>`;
+    <div class="item-foot">${meta}<div class="btns"><button class="btn ghost sm" data-act="dl" data-id="${it.id}">${ic('download', 14)} تنزيل</button>${noteBtn}</div></div></article>`;
   const ext = (String(it.name).split('.').pop() || 'ملف').slice(0, 4);
-  return `<article class="item"><div class="item-top" style="margin-bottom:10px"><span class="k">${ic('doc', 15)}</span><b>${esc(it.title || 'مستند')}</b>${acts}</div>
+  return `<article class="item" data-item="${esc(it.id)}"><div class="item-top" style="margin-bottom:10px"><span class="k">${ic('doc', 15)}</span><b>${esc(it.title || 'مستند')}</b>${acts}</div>
     <div class="file-row"><span class="ftype ${ext.toLowerCase() === 'pdf' ? 'pdf' : ''}">${esc(ext)}</span>
       <div class="f-main"><b>${esc(it.name)}</b><small>${fmtSize(it.size || 0)} · ${fmtDate(it.at)}${it.by ? ' · ' + esc(it.by) : ''}</small></div></div>
     <div class="file-acts" style="margin-top:12px"><button class="btn sm" data-act="openblob" data-id="${it.id}">${ic('open', 14)} فتح</button>
       <button class="btn sm" data-act="dl" data-id="${it.id}">${ic('download', 14)} تنزيل</button>
-      ${can('admin') && it.url ? `<a class="btn ghost sm" href="${esc(it.url)}" target="_blank" rel="noopener">${ic('folder', 14)} في Drive</a>` : ''}</div></article>`;
+      ${can('admin') && it.url ? `<a class="btn ghost sm" href="${esc(it.url)}" target="_blank" rel="noopener">${ic('folder', 14)} في Drive</a>` : ''}${noteBtn}</div></article>`;
 }
 
 async function itemOp(fn, ...args) {
@@ -1189,8 +1295,215 @@ async function handleUpload(files, kind) {
 $('#fImage').addEventListener('change', e => { const f = [...e.target.files]; e.target.value = ''; handleUpload(f, 'image'); });
 $('#fDoc').addEventListener('change', e => { const f = [...e.target.files]; e.target.value = ''; handleUpload(f, 'doc'); });
 
+/* ================= mind map ================= */
+function parseMM(t) {
+  try { const d = JSON.parse(t); return { root: String(d.root || ''), b: Array.isArray(d.b) ? d.b : [] }; }
+  catch { return { root: String(t || ''), b: [] }; }
+}
+/* Vertical tree: the head sits on top as a circle, each level of branches hangs below its parent. First branch on the right (RTL). */
+function mindmapHTML(d) {
+  const W = 136, H = 52, GX = 14, GY = 40, RD = 116;
+  let slots = 0, maxDepth = 0;
+  const lay = (n, depth) => {
+    const kids = (n.c || []).filter(k => String(k.t || '').trim() || (k.c || []).length);
+    maxDepth = Math.max(maxDepth, depth);
+    const out = { t: String(n.t || ''), depth, kids: kids.map(k => lay(k, depth + 1)) };
+    if (!out.kids.length) out.x = slots++ ;
+    else out.x = (out.kids[0].x + out.kids[out.kids.length - 1].x) / 2;
+    return out;
+  };
+  const top = { t: d.root, depth: 0, kids: [] };
+  top.kids = (d.b || []).filter(k => String(k.t || '').trim() || (k.c || []).length).map(k => lay(k, 1));
+  top.x = top.kids.length ? (top.kids[0].x + top.kids[top.kids.length - 1].x) / 2 : 0;
+  if (!top.kids.length) slots = 1;
+  const width = Math.max(slots * (W + GX) - GX, RD), height = RD + (maxDepth ? GY + maxDepth * H + (maxDepth - 1) * GY : 0);
+  const cx = x => width - (x * (W + GX) + W / 2) - (width - (slots * (W + GX) - GX)) / 2;   // mirrored for RTL, centred
+  const cy = depth => depth === 0 ? RD / 2 : RD + GY + (depth - 1) * (H + GY) + H / 2;
+  const nodes = [], links = [];
+  const walk = (n, tone) => {
+    const x = cx(n.x), y = cy(n.depth);
+    if (n.depth === 0) nodes.push(`<div class="mm-n root" style="left:${x - RD / 2}px;top:0;width:${RD}px;height:${RD}px"><span>${esc(n.t || 'رأس المخطط')}</span></div>`);
+    else nodes.push(`<div class="mm-n d${Math.min(n.depth, 3)}" style="--c:var(--${tone});--cs:var(--${tone}-soft);left:${x - W / 2}px;top:${y - H / 2}px;width:${W}px;height:${H}px" title="${esc(n.t)}"><span>${esc(n.t)}</span></div>`);
+    n.kids.forEach((k, i) => {
+      const kt = n.depth === 0 ? TONES[i % TONES.length] : tone;
+      const y1 = n.depth === 0 ? RD : y + H / 2, x2 = cx(k.x), y2 = cy(k.depth) - H / 2, my = (y1 + y2) / 2;
+      links.push(`<path style="--c:var(--${kt})" d="M${x} ${y1} C${x} ${my} ${x2} ${my} ${x2} ${y2}"/>`);
+      walk(k, kt);
+    });
+  };
+  walk(top, 'accent');
+  return `<div class="mm" style="width:${width}px;height:${height}px"><svg width="${width}" height="${height}" aria-hidden="true">${links.join('')}</svg>${nodes.join('')}</div>`;
+}
+function mmDraftFrom(it) {
+  const d = it ? parseMM(it.text) : { root: '', b: [] };
+  const conv = list => (list || []).map(n => ({ t: String(n.t || ''), c: conv(n.c) }));
+  return { title: it ? it.title || '' : '', root: d.root, b: conv(d.b) };
+}
+function mmAt(p) { const idx = String(p).split('.').map(Number); let list = S.mm.b; for (let i = 0; i < idx.length - 1; i++) list = list[idx[i]].c; return { list, i: idx[idx.length - 1] }; }
+function mmComposer() {
+  const d = S.mm;
+  const rows = (list, path, tone) => list.map((n, i) => { const pp = [...path, i]; const p = pp.join('.'); const t = path.length ? tone : TONES[i % TONES.length];
+    return `<div><div class="mm-ed-row"><span class="mm-dot" style="--c:var(--${t})"></span><input class="input" data-mm="${p}" value="${esc(n.t)}" placeholder="${path.length ? 'تفرع فرعي' : 'فرع رئيسي'}" maxlength="120" aria-label="نص الفرع">
+      <button type="button" class="tb" data-act="mm-addsub" data-p="${p}" title="إضافة تفرع فرعي" aria-label="إضافة تفرع فرعي">${ic('sub', 16)}</button>
+      <button type="button" class="tb del" data-act="mm-del" data-p="${p}" title="حذف الفرع وتفرعاته" aria-label="حذف">${ic('trash', 16)}</button></div>
+      ${n.c.length ? `<div class="mm-ed-kids">${rows(n.c, pp, t)}</div>` : ''}</div>`; }).join('');
+  return `<form class="composer" id="mmForm" autocomplete="off">
+    <div class="field"><label for="mmTitle">اسم المخطط</label><input class="input" id="mmTitle" value="${esc(d.title)}" maxlength="120" required placeholder="مثال: الهيكل الإداري للمدرسة"></div>
+    <div class="field"><label for="mmRoot">رأس المخطط</label><input class="input" id="mmRoot" value="${esc(d.root)}" maxlength="120" required placeholder="مثال: مدير المدرسة"></div>
+    <div class="field"><label>التفرعات</label><div class="mm-ed">${rows(d.b, [], '') || '<span style="font-size:13px;color:var(--muted)">لم تُضف تفرعات بعد.</span>'}</div>
+      <div style="margin-top:6px"><button type="button" class="btn sm" data-act="mm-add">${ic('plus', 15)} إضافة فرع رئيسي</button></div></div>
+    <details class="mm-prev" open><summary>معاينة المخطط</summary><div class="mm-scroll" id="mmPreview" data-lenis-prevent>${mindmapHTML(d)}</div></details>
+    <div class="row"><button type="button" class="btn ghost sm" data-act="cancel-compose">إلغاء</button><button class="btn primary sm">${ic('check', 16)} حفظ</button></div></form>`;
+}
+function mmRerender(focusPath) {
+  renderSheet();
+  const el = focusPath != null ? $(`[data-mm="${focusPath}"]`) : null; if (el) el.focus();
+}
+let mmT;
+function mmPreview() { clearTimeout(mmT); mmT = setTimeout(() => { const p = $('#mmPreview'); if (p && S.mm) p.innerHTML = mindmapHTML(S.mm); }, 120); }
+function mmClean(list) { return list.map(n => ({ t: n.t.trim().slice(0, 120), c: mmClean(n.c) })).filter(n => n.t || n.c.length); }
+function mmFull(it) {
+  const box = document.createElement('div');
+  box.className = 'mm-full'; box.dir = 'rtl';
+  box.innerHTML = `<div class="mm-full-head"><span style="color:var(--accent)">${ic('mind', 22)}</span><h2>${esc(it.title || 'خريطة ذهنية')}</h2><button class="icon-btn" data-mmclose aria-label="إغلاق">${ic('x', 20)}</button></div>
+    <div class="mm-scroll" data-lenis-prevent>${mindmapHTML(parseMM(it.text))}</div>`;
+  box.addEventListener('click', ev => { if (ev.target.closest('[data-mmclose]')) box.remove(); });
+  document.body.appendChild(box);
+}
+
+/* ================= notes ================= */
+function noteDialog(it) {
+  const label = it.title || it.name || ({ text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية' }[it.type]) || 'المعلومة';
+  openDialog('إضافة ملاحظة', `<form id="noteForm" style="display:flex;flex-direction:column;gap:10px">
+    <p style="margin:0;color:var(--muted);font-size:13.5px">على «${esc(label)}». تصل الملاحظة إلى المحررين فقط.</p>
+    <textarea class="input" id="noteText" maxlength="5000" required placeholder="اكتب ملاحظتك…"></textarea><div class="lock-msg" id="noteMsg"></div></form>`,
+    [{ label: 'إلغاء' }, { label: 'إرسال الملاحظة', cls: 'primary', fn: async () => {
+      const text = $('#noteText').value.trim(); if (!text) return $('#noteMsg').textContent = 'اكتب نص الملاحظة.';
+      $('#noteMsg').innerHTML = '<span style="color:var(--muted)">جارٍ الإرسال…</span>';
+      try { const r = await call('apiAddNote', String(S.school), S.sheet.id, it.id, text); S.ver = r.ver; closeDialog(); toast('أُرسلت الملاحظة إلى المحررين'); }
+      catch { $('#noteMsg').textContent = ''; }
+    } }]);
+}
+function openSide(kind) { $('.menu')?.remove(); closeFocus(); closeSheet(); S.panel = null; S.side = kind; if (kind === 'inbox') { S.notes = null; renderSide(); loadNotes(); } else { S.stats = null; renderSide(); loadStats(); } }
+function closeSide() { S.side = null; $('#overlay').innerHTML = ''; if (S.view === 'school') renderSchoolView(false); }
+function renderSide() {
+  if (!S.side) return;
+  const inbox = S.side === 'inbox';
+  const body = inbox ? inboxBody() : statsBody();
+  const keepScroll = $('.panel-body') ? $('.panel-body').scrollTop : 0;
+  $('#overlay').innerHTML = `<div class="panel" dir="rtl" role="dialog" aria-label="${inbox ? 'الملاحظات' : 'الإحصائيات'}">
+    <div class="panel-head"><div class="wrap"><span style="color:var(--accent)">${ic(inbox ? 'inbox' : 'stats', 22)}</span><h2>${inbox ? 'الملاحظات' : 'الإحصائيات'}</h2><button class="icon-btn" data-act="closeside" aria-label="إغلاق">${ic('x', 20)}</button></div>
+      ${inbox ? `<div class="wrap"><div class="tabs">${[['all', 'كل الملاحظات'], ['unread', 'غير المقروءة']].map(([k, l]) => `<button class="tab ${S.notesFilter === k ? 'on' : ''}" data-act="nfilter" data-v="${k}">${l}${k === 'unread' && S.unread ? ` <span class="state-pill" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">${S.unread}</span>` : ''}</button>`).join('')}</div></div>` : ''}</div>
+    <div class="panel-body" data-lenis-prevent><div class="wrap">${body}</div></div></div>`;
+  if (keepScroll) $('.panel-body').scrollTop = keepScroll;
+}
+async function loadNotes() {
+  try { S.notes = await call('apiNotes'); S.unread = S.notes.filter(n => !n.read).length; renderTop(); } catch { S.notes = S.notes || []; }
+  if (S.side === 'inbox') renderSide();
+}
+function inboxBody() {
+  if (!S.notes) return '<div class="empty">جارٍ تحميل الملاحظات…</div>';
+  const list = S.notes.filter(n => S.notesFilter === 'all' || !n.read);
+  const head = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="color:var(--muted);font-size:13px">${S.notes.length.toLocaleString('ar-OM')} ملاحظة، منها ${S.unread.toLocaleString('ar-OM')} غير مقروءة</span><span class="spacer"></span>
+    ${S.unread ? `<button class="btn sm" data-act="nread-all">${ic('check', 15)} تعليم الكل كمقروء</button>` : ''}</div>`;
+  if (!list.length) return head + `<div class="empty"><span class="e-icon">${ic('inbox', 36)}</span><h3>${S.notesFilter === 'unread' ? 'لا توجد ملاحظات غير مقروءة' : 'لا توجد ملاحظات بعد'}</h3><p>يضيف المستخدمون الملاحظات من زر «ملاحظة» أسفل أي معلومة.</p></div>`;
+  return head + `<div class="notes-list">${list.map(n => `<article class="note-card ${n.read ? '' : 'unread'}" data-act="nopen-card" data-id="${esc(n.id)}">
+      <div class="n-top"><span class="n-dot"></span><span class="n-by">${esc(n.by)}</span><span class="role ${n.role === 'admin' ? 'admin' : ''}">${ROLE[n.role] || ''}</span><span class="state-pill">${n.read ? 'مقروءة' : 'جديدة'}</span><span class="n-date">${fmtDate(n.at)}</span></div>
+      <div class="n-where"><b>${esc(n.school)}</b> · ${esc(n.path || '')} · ${esc(n.itemTitle)}</div>
+      <div class="n-text">${esc(n.text)}</div>
+      <div class="n-acts"><button class="btn sm" data-act="nopen" data-id="${esc(n.id)}">${ic('open', 14)} فتح المعلومة</button>
+        <button class="btn ghost sm" data-act="ntoggle" data-id="${esc(n.id)}">${n.read ? 'تعليم كغير مقروءة' : `${ic('check', 14)} تعليم كمقروءة`}</button>
+        <button class="btn ghost sm" data-act="ndel" data-id="${esc(n.id)}" style="color:var(--danger)">${ic('trash', 14)} حذف</button></div></article>`).join('')}</div>`;
+}
+async function markNotes(ids, read) {
+  ids = ids.filter(id => { const n = S.notes.find(x => x.id === id); return n && n.read !== read; });
+  if (!ids.length) return;
+  ids.forEach(id => { S.notes.find(x => x.id === id).read = read; });
+  S.unread = S.notes.filter(n => !n.read).length; renderTop(); renderSide();
+  try { const r = await call('apiMarkNotes', ids, read); S.unread = r.unread; renderTop(); } catch {}
+}
+function pathOfLeaf(id) {
+  let found = null;
+  const walk = (list, trail) => list.some(n => { const t = trail.concat(n.id); if (n.id === id) { found = t; return true; } return walk(n.children || [], t); });
+  walk(S.config.roots, []);
+  return found;
+}
+function openNoteTarget(n) {
+  const p = pathOfLeaf(n.leaf);
+  if (!getSchool(n.code)) return toast('المدرسة غير موجودة في القائمة الآن.');
+  if (!p) return toast('القسم لم يعد موجوداً.');
+  markNotes([n.id], true);
+  S.side = null; $('#overlay').innerHTML = '';
+  openSchool(n.code, p.slice(0, -1));
+  const node = getNode(p); if (!node) return;
+  S.flashItem = n.item;
+  openSheet(node);
+}
+
+/* ================= statistics ================= */
+async function loadStats() {
+  try { S.stats = await call('apiStats'); } catch { S.stats = S.stats || []; }
+  if (S.side === 'stats') renderSide();
+}
+const TYPE_LABEL = { text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية' };
+function statsBody() {
+  if (!S.stats) return '<div class="empty">جارٍ حساب الإحصائيات…</div>';
+  const f = S.sf, bySchool = new Map(S.schools.map(s => [String(s.code), s]));
+  const leafRoot = {}; const walk = (list, root) => list.forEach(n => { leafRoot[n.id] = root || n.id; walk(n.children || [], root || n.id); }); walk(S.config.roots, null);
+  const q = norm(f.q);
+  const schools = S.schools.filter(s => (!f.w || s.wilayah === f.w) && (!q || norm(s.name).includes(q) || norm(s.code).includes(q)));
+  const inScope = new Set(schools.map(s => String(s.code)));
+  const rows = S.stats.filter(([code, leaf, type]) => inScope.has(code) && (!f.r || leafRoot[leaf] === f.r) && (!f.t || type === f.t));
+  const perSchool = new Map(), perLeaf = new Map(), perW = new Map();
+  rows.forEach(([code, leaf]) => { perSchool.set(code, (perSchool.get(code) || 0) + 1); perLeaf.set(leaf, (perLeaf.get(leaf) || 0) + 1); const w = (bySchool.get(code) || {}).wilayah || ''; perW.set(w, (perW.get(w) || 0) + 1); });
+  const covered = schools.filter(s => perSchool.get(String(s.code))).length;
+  const bar = (v, max) => `<span class="bar ${v ? '' : 'zero'}" title="${v.toLocaleString('ar-OM')}"><i style="width:${max ? Math.max(v ? 2 : 0, v / max * 100) : 0}%"></i></span>`;
+  const wil = [...new Set(S.schools.map(s => s.wilayah))].sort((a, b) => a.localeCompare(b, 'ar'));
+  // by wilayah
+  const wRows = [...new Set(schools.map(s => s.wilayah))].map(w => ({ w, n: perW.get(w) || 0, total: schools.filter(s => s.wilayah === w).length, cov: schools.filter(s => s.wilayah === w && perSchool.get(String(s.code))).length })).sort((a, b) => b.n - a.n);
+  const wMax = Math.max(0, ...wRows.map(x => x.n));
+  // by section (subtree sums)
+  const secRows = []; const sum = n => (n.children && n.children.length) ? n.children.reduce((a, c) => a + sum(c), 0) + (perLeaf.get(n.id) || 0) : (perLeaf.get(n.id) || 0);
+  const secWalk = (list, lv, tone) => list.forEach(n => { if (f.r && lv === 0 && n.id !== f.r) return; secRows.push({ n, lv, v: sum(n), tone: tone || n.tone }); secWalk(n.children || [], lv + 1, tone || n.tone); });
+  secWalk(S.config.roots, 0, null);
+  const sMax = Math.max(0, ...secRows.filter(x => x.lv === 0).map(x => x.v), ...secRows.map(x => x.v));
+  // by school
+  let sRows = schools.map(s => ({ s, n: perSchool.get(String(s.code)) || 0 })).sort((a, b) => b.n - a.n || String(a.s.name).localeCompare(String(b.s.name), 'ar'));
+  if (f.zero) sRows = sRows.filter(x => !x.n).sort((a, b) => String(a.s.wilayah).localeCompare(String(b.s.wilayah), 'ar'));
+  const scMax = Math.max(0, ...sRows.map(x => x.n));
+  const shown = f.all ? sRows : sRows.slice(0, 40);
+  return `<div class="st-filters" role="group" aria-label="فلترة الإحصائيات">
+      <div class="field"><label for="sfW">الولاية</label><select class="input" id="sfW" data-sf="w"><option value="">كل الولايات</option>${wil.map(w => `<option ${f.w === w ? 'selected' : ''}>${esc(w)}</option>`).join('')}</select></div>
+      <div class="field"><label for="sfR">القسم الرئيسي</label><select class="input" id="sfR" data-sf="r"><option value="">كل الأقسام</option>${S.config.roots.map(r => `<option value="${esc(r.id)}" ${f.r === r.id ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="sfT">نوع المعلومة</label><select class="input" id="sfT" data-sf="t"><option value="">كل الأنواع</option>${Object.entries(TYPE_LABEL).map(([k, l]) => `<option value="${k}" ${f.t === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="sfQ">المدرسة</label><input class="input" id="sfQ" data-sf="q" value="${esc(f.q)}" placeholder="الاسم أو الرمز"></div>
+      ${f.w || f.r || f.t || f.q ? `<button class="btn ghost" data-act="sf-clear">${ic('x', 15)} إزالة الفلاتر</button>` : ''}
+    </div>
+    <div class="st-tiles">
+      <div class="st-tile"><b>${rows.length.toLocaleString('ar-OM')}</b><span>معلومة مدخلة</span></div>
+      <div class="st-tile"><b>${covered.toLocaleString('ar-OM')} <small style="font-size:14px;color:var(--muted)">من ${schools.length.toLocaleString('ar-OM')}</small></b><span>مدرسة فيها معلومات (${(schools.length ? Math.round(covered / schools.length * 100) : 0).toLocaleString('ar-OM')}٪)</span></div>
+      <div class="st-tile"><b>${(schools.length - covered).toLocaleString('ar-OM')}</b><span>مدرسة بدون معلومات</span></div>
+      <div class="st-tile"><b>${schools.length ? (rows.length / schools.length).toLocaleString('ar-OM', { maximumFractionDigits: 1 }) : 0}</b><span>متوسط المعلومات لكل مدرسة</span></div>
+    </div>
+    <div class="st-grid">
+      <section class="card"><h3>حسب الولاية</h3><div class="table-wrap"><table class="st-table"><thead><tr><th>الولاية</th><th class="num">المدارس</th><th class="num">فيها معلومات</th><th class="num">المعلومات</th><th></th></tr></thead><tbody>
+        ${wRows.map(x => `<tr><td>${esc(x.w || 'بدون ولاية')}</td><td class="num">${x.total.toLocaleString('ar-OM')}</td><td class="num">${x.cov.toLocaleString('ar-OM')}</td><td class="num"><b>${x.n.toLocaleString('ar-OM')}</b></td><td class="barcell">${bar(x.n, wMax)}</td></tr>`).join('') || '<tr><td colspan="5">لا توجد بيانات.</td></tr>'}
+      </tbody></table></div></section>
+      <section class="card"><h3>حسب القسم</h3><div class="table-wrap"><table class="st-table st-sec"><thead><tr><th>القسم</th><th class="num">المعلومات</th><th></th></tr></thead><tbody>
+        ${secRows.map(x => `<tr class="lv${Math.min(x.lv, 1)}" style="--lv:${x.lv}"><td>${x.lv === 0 ? `<span class="tone-dot" style="background:var(--${x.tone})"></span>` : ''}${esc(x.n.name)}</td><td class="num">${x.v.toLocaleString('ar-OM')}</td><td class="barcell">${bar(x.v, sMax)}</td></tr>`).join('') || '<tr><td colspan="3">لا توجد أقسام.</td></tr>'}
+      </tbody></table></div></section>
+    </div>
+    <section class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="flex:1">حسب المدرسة</h3>
+        <label class="radio"><input type="checkbox" id="sfZero" data-sf="zero" ${f.zero ? 'checked' : ''}> المدارس بدون معلومات فقط</label></div>
+      <div class="table-wrap"><table class="st-table"><thead><tr><th>المدرسة</th><th>الولاية</th><th class="num">المعلومات</th><th></th></tr></thead><tbody>
+        ${shown.map(x => `<tr><td><button class="btn ghost sm" style="padding:2px 6px" data-act="st-school" data-code="${esc(x.s.code)}">${esc(x.s.name)}</button> <span style="color:var(--muted);font-size:12px">${esc(x.s.code)}</span></td><td>${esc(x.s.wilayah)}</td><td class="num"><b>${x.n.toLocaleString('ar-OM')}</b></td><td class="barcell">${bar(x.n, scMax)}</td></tr>`).join('') || '<tr><td colspan="4">لا توجد مدارس مطابقة.</td></tr>'}
+      </tbody></table></div>
+      ${sRows.length > shown.length ? `<div class="st-more"><button class="btn sm" data-act="sf-all">عرض كل المدارس (${sRows.length.toLocaleString('ar-OM')})</button></div>` : ''}
+    </section>`;
+}
+
 /* ================= settings panel ================= */
-function openPanel(tab) { $('.menu')?.remove(); closeFocus(); closeSheet(); S.panel = true; if (tab) S.tab = tab; renderPanel(); }
+function openPanel(tab) { S.side = null; $('.menu')?.remove(); closeFocus(); closeSheet(); S.panel = true; if (tab) S.tab = tab; renderPanel(); }
 function closePanel() { S.panel = null; S.importRows = null; $('#overlay').innerHTML = ''; if (S.view === 'school') renderSchoolView(false); else { renderChips(); renderGrid(); renderStats(); } }
 function renderPanelSafe() { const a = document.activeElement; if (a && $('.panel') && $('.panel').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { a.addEventListener('blur', () => S.panel && renderPanel(), { once: true }); return; } renderPanel(); }
 function renderPanel() {
@@ -1474,7 +1787,7 @@ function confirmBox(msg, ok = 'تأكيد') {
 }
 let toastT;
 function toast(m) { $('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.dir = 'rtl'; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200); }
-function closeAll() { $('#overlay').innerHTML = ''; $('#sheetHost').innerHTML = ''; closeDialog(); S.sheet = null; S.panel = null; S.focus = null; S.focusPath = []; }
+function closeAll() { S.side = null; $('#overlay').innerHTML = ''; $('#sheetHost').innerHTML = ''; closeDialog(); S.sheet = null; S.panel = null; S.focus = null; S.focusPath = []; }
 
 /* ================= event delegation ================= */
 document.addEventListener('click', async e => {
@@ -1483,6 +1796,31 @@ document.addEventListener('click', async e => {
   if (el.tagName === 'INPUT' || el.tagName === 'SELECT') return;
   switch (a) {
     case 'home': closeAll(); goHome(); break;
+    case 'theme': toggleTheme(); break;
+    case 'stats': openSide('stats'); break;
+    case 'inbox': openSide('inbox'); break;
+    case 'closeside': closeSide(); break;
+    case 'nfilter': S.notesFilter = el.dataset.v; renderSide(); break;
+    case 'nread-all': markNotes(S.notes.filter(n => !n.read).map(n => n.id), true); break;
+    case 'ntoggle': { e.stopPropagation(); const n = S.notes.find(x => x.id === el.dataset.id); if (n) markNotes([n.id], !n.read); break; }
+    case 'nopen-card': { const n = S.notes.find(x => x.id === el.dataset.id); if (n && !n.read) markNotes([n.id], true); break; }
+    case 'nopen': { e.stopPropagation(); const n = S.notes.find(x => x.id === el.dataset.id); if (n) openNoteTarget(n); break; }
+    case 'ndel': {
+      e.stopPropagation();
+      const n = S.notes.find(x => x.id === el.dataset.id); if (!n) break;
+      if (!(await confirmBox(`حذف ملاحظة ${n.by}؟`, 'حذف'))) break;
+      try { const r = await call('apiDeleteNote', n.id); S.notes = S.notes.filter(x => x.id !== n.id); S.unread = r.unread; S.ver = r.ver; renderTop(); renderSide(); toast('تم حذف الملاحظة'); } catch {}
+      break;
+    }
+    case 'sf-clear': S.sf = { w: '', r: '', t: '', q: '', zero: S.sf.zero, all: false }; renderSide(); break;
+    case 'sf-all': S.sf.all = true; renderSide(); break;
+    case 'st-school': { const code = el.dataset.code; closeSide(); S.fw = S.fg = S.fp = S.q = ''; backToSchool(code); break; }
+    case 'note': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) noteDialog(it); break; }
+    case 'add-mm': S.mm = mmDraftFrom(null); S.composing = { type: 'mindmap' }; mmRerender('__none'); setTimeout(() => $('#mmTitle')?.focus(), 30); break;
+    case 'mm-add': S.mm.b.push({ t: '', c: [] }); mmRerender(String(S.mm.b.length - 1)); break;
+    case 'mm-addsub': { const { list, i } = mmAt(el.dataset.p); list[i].c.push({ t: '', c: [] }); mmRerender(el.dataset.p + '.' + (list[i].c.length - 1)); break; }
+    case 'mm-del': { const { list, i } = mmAt(el.dataset.p); list.splice(i, 1); mmRerender(); break; }
+    case 'mm-full': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) mmFull(it); break; }
     case 'school': focusSchool(el.dataset.code); break;
     case 'unfocus': closeFocus(); break;
     case 'fnode': focusNode(el.dataset.id); break;
@@ -1512,7 +1850,9 @@ document.addEventListener('click', async e => {
     case 'add-image': $('#fImage').click(); break;
     case 'add-doc': $('#fDoc').click(); break;
     case 'cancel-compose': S.composing = null; renderSheet(); break;
-    case 'edit-item': S.composing = { type: 'text', id: el.dataset.id }; renderSheet(); break;
+    case 'edit-item': { const it = sheetItems().find(x => x.id === el.dataset.id); if (!it) break;
+      if (it.type === 'mindmap') { S.mm = mmDraftFrom(it); S.composing = { type: 'mindmap', id: it.id }; } else S.composing = { type: 'text', id: it.id };
+      renderSheet(); break; }
     case 'del-item': {
       const it = sheetItems().find(x => x.id === el.dataset.id); if (!it) break;
       if (!(await confirmBox(`حذف «${it.title || it.name || 'هذه المعلومة'}»؟ لا يمكن التراجع.`, 'حذف'))) break;
@@ -1584,6 +1924,18 @@ document.addEventListener('change', e => {
   if (el.dataset.act === 'role') { userOp('apiUpdateUser', el.dataset.id, { role: el.value }).then(() => toast('تم تحديث الدور')).catch(() => {}); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.act === 'rename') e.target.blur(); });
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (S.mm && el.dataset.mm != null) { const { list, i } = mmAt(el.dataset.mm); list[i].t = el.value; mmPreview(); }
+  else if (S.mm && el.id === 'mmRoot') { S.mm.root = el.value; mmPreview(); }
+  else if (S.mm && el.id === 'mmTitle') S.mm.title = el.value;
+  if (el.dataset.sf === 'q') { clearTimeout(sfT); sfT = setTimeout(() => { S.sf.q = el.value; S.sf.all = false; renderSide(); const q = $('#sfQ'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); }
+});
+let sfT;
+document.addEventListener('change', e => {
+  const el = e.target; const k = el.dataset.sf; if (!k || k === 'q') return;
+  S.sf[k] = el.type === 'checkbox' ? el.checked : el.value; S.sf.all = false; renderSide();
+});
 document.addEventListener('submit', async e => {
   const f = e.target;
   if (f.dataset.form === 'addroot') {
@@ -1595,6 +1947,17 @@ document.addEventListener('submit', async e => {
     e.preventDefault(); const name = f.querySelector('input').value.trim(); if (!name) return;
     mutateConfig(c => { const used = new Set(c.roots.map(x => x.tone)); c.roots.push({ id: rid(), name, icon: guessIcon(name), tone: TONES.find(t => !used.has(t)) || TONES[c.roots.length % TONES.length], children: [] }); });
     toast('تمت إضافة القسم الرئيسي');
+  }
+  if (f.id === 'mmForm') {
+    e.preventDefault();
+    const d = S.mm; d.title = $('#mmTitle').value.trim(); d.root = $('#mmRoot').value.trim();
+    if (!d.title || !d.root) return toast('اكتب اسم المخطط ورأسه.');
+    const json = JSON.stringify({ root: d.root, b: mmClean(d.b) });
+    const editId = S.composing && S.composing.id;
+    S.composing = null; S.mm = null;
+    renderSheet();
+    await (editId ? itemOp('apiEditText', editId, d.title, json) : itemOp('apiAddText', d.title, json, 'mindmap')).then(() => toast('تم حفظ الخريطة الذهنية في Drive')).catch(() => {});
+    renderSheet(); renderOrbit(false);
   }
   if (f.id === 'composer') {
     e.preventDefault();

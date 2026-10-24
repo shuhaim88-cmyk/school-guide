@@ -13,14 +13,19 @@ const APP_TITLE = 'دليل المدارس';
 const MAX_FILE_MB = 10;            // أقصى حجم للمرفق الواحد
 const MAX_TEXT = 45000;            // أقصى طول للنص (حد خلية Google Sheets 50 ألف حرف)
 
-const SH = { schools: 'المدارس', sections: 'الأقسام', info: 'المعلومات', users: 'المستخدمون' };
+const SH = { schools: 'المدارس', sections: 'الأقسام', info: 'المعلومات', users: 'المستخدمون', notes: 'الملاحظات' };
 const HEAD = {
   schools: ['الولاية', 'رمز المدرسة', 'اسم المدرسة', 'المرحلة', 'الجنس', 'الفترة'],
   sections: ['المعرف', 'القسم الأب', 'اسم القسم', 'الأيقونة', 'اللون', 'الترتيب'],
   info: ['رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'النوع', 'العنوان', 'النص',
     'اسم الملف', 'معرف الملف', 'رابط الملف', 'الحجم', 'نوع الملف', 'أضافها', 'التاريخ'],
-  users: ['المعرف', 'الاسم', 'الدور', 'بصمة الرقم السري', 'الأقسام المستثناة', 'تاريخ الإضافة']
+  users: ['المعرف', 'الاسم', 'الدور', 'بصمة الرقم السري', 'الأقسام المستثناة', 'تاريخ الإضافة'],
+  notes: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'عنوان المعلومة',
+    'نص الملاحظة', 'كاتبها', 'معرف الكاتب', 'دور الكاتب', 'التاريخ', 'قرأها']
 };
+// أعمدة جدول الملاحظات (تبدأ من 0)
+const N = { id: 0, code: 1, sname: 2, leaf: 3, path: 4, item: 5, ititle: 6, text: 7, by: 8, byId: 9, role: 10, at: 11, readBy: 12 };
+const TEXT_TYPES = { text: true, mindmap: true };
 // أعمدة جدول المعلومات (تبدأ من 0)
 const I = { code: 0, sname: 1, leaf: 2, path: 3, id: 4, type: 5, title: 6, text: 7, fname: 8, fid: 9, furl: 10, size: 11, mime: 12, by: 13, at: 14 };
 
@@ -52,7 +57,7 @@ function ss_() {
   if (id) { try { SS_ = SpreadsheetApp.openById(id); return SS_; } catch (e) {} }
   const ss = SpreadsheetApp.create(APP_TITLE + ' - البيانات');
   DriveApp.getFileById(ss.getId()).moveTo(rootFolder_());
-  Object.keys(SH).forEach((k, i) => {
+  ['schools', 'sections', 'info', 'users'].forEach((k, i) => {
     const sh = i === 0 ? ss.getSheets()[0].setName(SH[k]) : ss.insertSheet(SH[k]);
     sh.getRange(1, 1, 1, HEAD[k].length).setValues([HEAD[k]]).setFontWeight('bold').setBackground('#D5EDE8');
     sh.setFrozenRows(1);
@@ -71,7 +76,18 @@ function ss_() {
   SS_ = ss;
   return ss;
 }
-const sheet_ = k => ss_().getSheetByName(SH[k]);
+function sheet_(k) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(SH[k]);
+  if (!sh) {
+    sh = ss.insertSheet(SH[k]);
+    sh.getRange(1, 1, 1, HEAD[k].length).setValues([HEAD[k]]).setFontWeight('bold').setBackground('#D5EDE8');
+    sh.setFrozenRows(1);
+    sh.setRightToLeft(true);
+    if (k === 'notes') sh.getRange('B:B').setNumberFormat('@');
+  }
+  return sh;
+}
 function rows_(k, display) {
   const sh = sheet_(k); const n = sh.getLastRow();
   if (n < 2) return [];
@@ -177,7 +193,7 @@ function allowedLeaves_(u, roots) {
 function rowToItem_(r) {
   const it = { id: String(r[I.id]), type: String(r[I.type]), title: String(r[I.title] || ''), by: String(r[I.by] || ''),
     at: r[I.at] instanceof Date ? r[I.at].getTime() : Number(r[I.at]) || 0 };
-  if (it.type === 'text') it.text = String(r[I.text] || '');
+  if (TEXT_TYPES[it.type]) it.text = String(r[I.text] || '');
   else { it.name = String(r[I.fname]); it.fileId = String(r[I.fid]); it.url = String(r[I.furl]); it.size = Number(r[I.size]) || 0; it.mime = String(r[I.mime]); }
   return it;
 }
@@ -250,20 +266,94 @@ function apiBootstrap(token) {
     schools,
     users: u.role === 'admin' ? readUsers_().map(publicUser_) : null,
     ver: ver_(),
+    unreadNotes: unreadCount_(u),
     driveUrl: u.role === 'admin' ? rootFolder_().getUrl() : ''
   };
 }
 function apiPoll(token) { auth_(token); return ver_(); }
 
+/* ---------- الإحصائيات ---------- */
+// يعيد [رمز المدرسة، معرف القسم، النوع] لكل معلومة يُسمح للمستخدم برؤيتها
+function apiStats(token) {
+  const u = auth_(token);
+  const allowed = u.role === 'viewer' ? allowedLeaves_(u, readSections_()) : null;
+  return rows_('info').filter(r => r[I.id] && (!allowed || allowed[String(r[I.leaf])]))
+    .map(r => [String(r[I.code]), String(r[I.leaf]), String(r[I.type])]);
+}
+
+/* ---------- الملاحظات ---------- */
+function notesRows_() { return sheet_('notes').getLastRow() < 2 ? [] : rows_('notes'); }
+function unreadCount_(u) {
+  if (u.role === 'viewer') return 0;
+  return notesRows_().filter(r => r[N.id] && String(r[N.byId]) !== u.id && String(r[N.readBy] || '').split(',').indexOf(u.id) < 0).length;
+}
+function apiAddNote(token, code, leaf, itemId, text) {
+  const u = auth_(token);
+  text = String(text || '').trim();
+  if (!text) throw new Error('NOT_FOUND');
+  if (text.length > 5000) throw new Error('TEXT_TOO_LONG');
+  if (u.role === 'viewer' && !allowedLeaves_(u, readSections_())[String(leaf)]) throw new Error('FORBIDDEN');
+  return withLock_(() => {
+    const row = findInfoRow_(itemId); if (!row) throw new Error('NOT_FOUND');
+    const ir = sheet_('info').getRange(row, 1, 1, HEAD.info.length).getValues()[0];
+    const label = String(ir[I.title] || ir[I.fname] || '') || ({ text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية' }[String(ir[I.type])] || 'معلومة');
+    const out = new Array(HEAD.notes.length).fill('');
+    out[N.id] = newId_(); out[N.code] = String(code); out[N.sname] = String(ir[I.sname] || schoolName_(code)); out[N.leaf] = String(leaf);
+    out[N.path] = String(ir[I.path] || ''); out[N.item] = String(itemId); out[N.ititle] = label; out[N.text] = text;
+    out[N.by] = u.name; out[N.byId] = u.id; out[N.role] = u.role; out[N.at] = new Date(); out[N.readBy] = u.role === 'viewer' ? '' : u.id;
+    sheet_('notes').appendRow(out);
+    return { ver: bump_() };
+  });
+}
+function apiNotes(token) {
+  const u = auth_(token, 'edit');
+  return notesRows_().filter(r => r[N.id]).map(r => ({
+    id: String(r[N.id]), code: String(r[N.code]), school: String(r[N.sname]), leaf: String(r[N.leaf]), path: String(r[N.path]),
+    item: String(r[N.item]), itemTitle: String(r[N.ititle]), text: String(r[N.text]), by: String(r[N.by]), byId: String(r[N.byId]),
+    role: String(r[N.role]), at: r[N.at] instanceof Date ? r[N.at].getTime() : Number(r[N.at]) || 0,
+    read: String(r[N.byId]) === u.id || String(r[N.readBy] || '').split(',').indexOf(u.id) >= 0
+  })).sort((a, b) => b.at - a.at).slice(0, 1000);
+}
+function apiMarkNotes(token, ids, read) {
+  const u = auth_(token, 'edit');
+  const want = {}; (ids || []).forEach(id => { want[String(id)] = true; });
+  return withLock_(() => {
+    const sh = sheet_('notes'); const n = sh.getLastRow();
+    if (n < 2) return { unread: 0 };
+    const rng = sh.getRange(2, N.readBy + 1, n - 1, 1), ids2 = sh.getRange(2, 1, n - 1, 1).getValues(), vals = rng.getValues();
+    let changed = false;
+    ids2.forEach((r, i) => {
+      if (!want[String(r[0])]) return;
+      const list = String(vals[i][0] || '').split(',').filter(String), has = list.indexOf(u.id) >= 0;
+      if (read && !has) { list.push(u.id); changed = true; }
+      if (!read && has) { list.splice(list.indexOf(u.id), 1); changed = true; }
+      vals[i][0] = list.join(',');
+    });
+    if (changed) rng.setValues(vals);
+    return { unread: unreadCount_(u) };
+  });
+}
+function apiDeleteNote(token, id) {
+  const u = auth_(token, 'edit');
+  return withLock_(() => {
+    const sh = sheet_('notes'); if (sh.getLastRow() < 2) throw new Error('NOT_FOUND');
+    const hit = sh.getRange(2, 1, sh.getLastRow() - 1, 1).createTextFinder(String(id)).matchEntireCell(true).findNext();
+    if (!hit) throw new Error('NOT_FOUND');
+    sh.deleteRow(hit.getRow());
+    return { unread: unreadCount_(u), ver: bump_() };
+  });
+}
+
 function apiGetInfo(token, code) {
   const u = auth_(token);
   return infoFor_(code, u.role === 'viewer' ? allowedLeaves_(u, readSections_()) : null);
 }
-function apiAddText(token, code, leaf, title, text) {
+function apiAddText(token, code, leaf, title, text, kind) {
   const u = auth_(token, 'edit');
   if (String(text).length > MAX_TEXT) throw new Error('TEXT_TOO_LONG');
+  const type = kind === 'mindmap' ? 'mindmap' : 'text';
   return withLock_(() => {
-    sheet_('info').appendRow(newInfoRow_(u, code, leaf, { id: newId_(), type: 'text', title: String(title || '').slice(0, 200), text: String(text) }));
+    sheet_('info').appendRow(newInfoRow_(u, code, leaf, { id: newId_(), type, title: String(title || '').slice(0, 200), text: String(text) }));
     return leafResult_(u, code, leaf);
   });
 }
