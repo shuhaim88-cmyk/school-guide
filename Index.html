@@ -348,6 +348,9 @@ tr:last-child td{border-bottom:0}
 .bk-prev{display:flex;flex-direction:column;gap:12px}
 .bk-sum{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .bk-bad{color:var(--danger)}
+tr.bk-row-bad td{background:var(--danger-soft)}
+.bk-files select{min-width:200px;padding:6px 8px}
+.bk-files td{white-space:normal;vertical-align:middle}
 .bk-paste{min-height:180px;font-family:var(--f-body);direction:rtl}
 .bk-progress{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
 .bk-progress i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .2s}
@@ -1516,8 +1519,8 @@ function renderSide() {
   const inbox = S.side === 'inbox', bulk = S.side === 'bulk';
   const body = inbox ? inboxBody() : bulk ? bulkBody() : statsBody();
   const title = inbox ? 'الملاحظات' : bulk ? 'إدخال جماعي للمدارس' : 'الإحصائيات';
-  const keepScroll = $('.panel-body') ? $('.panel-body').scrollTop : 0;
-  $('#overlay').innerHTML = `<div class="panel" dir="rtl" role="dialog" aria-label="${title}">
+  const keepScroll = $('.panel-body') ? $('.panel-body').scrollTop : 0, again = !!$('#overlay .panel');
+  $('#overlay').innerHTML = `<div class="panel" dir="rtl" role="dialog" aria-label="${title}" ${again ? 'style="animation:none"' : ''}>
     <div class="panel-head"><div class="wrap"><span style="color:var(--accent)">${ic(inbox ? 'inbox' : bulk ? 'upload' : 'stats', 22)}</span><h2>${title}</h2><button class="icon-btn" data-act="closeside" aria-label="إغلاق">${ic('x', 20)}</button></div>
       ${inbox ? `<div class="wrap"><div class="tabs">${[['all', 'كل الملاحظات'], ['unread', 'غير المقروءة']].map(([k, l]) => `<button class="tab ${S.notesFilter === k ? 'on' : ''}" data-act="nfilter" data-v="${k}">${l}${k === 'unread' && S.unread ? ` <span class="state-pill" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">${S.unread}</span>` : ''}</button>`).join('')}</div></div>` : ''}</div>
     <div class="panel-body" data-lenis-prevent><div class="wrap">${body}</div></div></div>`;
@@ -1706,25 +1709,148 @@ function xMapCard() {
   </section>`;
 }
 
-function bulkImages(files) {
-  const sm = schoolMap();
-  const list = [...files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic)$/i.test(f.name)).map(f => {
-    const base = toLatinNum(f.name.replace(/\.[^.]+$/, ''));
-    const runs = base.match(/\d+/g) || [];
-    const code = runs.find(x => sm.has(x)) || runs.map(x => x.replace(/^0+/, '')).find(x => sm.has(x)) || '';
-    return { file: f, code };
+/* ---- images & documents: find each file's school from its name, then (documents) from its content ---- */
+const LIB = {
+  pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  pdfLib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'
+};
+const libLoads = {};
+function loadScript(u) {
+  return libLoads[u] || (libLoads[u] = new Promise((res, rej) => {
+    const el = document.createElement('script'); el.src = u; el.onload = res;
+    el.onerror = () => { delete libLoads[u]; rej(new Error('LIB')); };
+    document.head.appendChild(el);
+  }));
+}
+// pdf.js runs in the page itself: the worker script is loaded as a normal script, so no cross-origin Worker is needed
+async function pdfReady() { await loadScript(LIB.pdf); await loadScript(LIB.pdfWorker); window.pdfjsLib.GlobalWorkerOptions.workerSrc = LIB.pdfWorker; }
+async function pdfPagesText(u8) {
+  await pdfReady();
+  const doc = await window.pdfjsLib.getDocument({ data: u8.slice() }).promise, out = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const tc = await (await doc.getPage(i)).getTextContent(), lines = []; let cur = [];
+    tc.items.forEach(it => { cur.push(it.str || ''); if (it.hasEOL) { lines.push(cur); cur = []; } }); if (cur.length) lines.push(cur);
+    // Arabic is often stored in display order and display shapes: keep the text as stored, plus each line rebuilt in reading order
+    out.push(lines.map(l => l.join('')).join('\n').normalize('NFKC') + '\n' + lines.map(l => l.slice().reverse().map(x => x.normalize('NFKC')).join('')).join('\n'));
+  }
+  doc.destroy(); return out;
+}
+async function docText(file, u8) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const xmlText = paths => { const cfb = XLSX.CFB.read(u8, { type: 'array' }); return cfb.FullPaths.filter(pth => paths.test(pth)).map(pth => { const e = XLSX.CFB.find(cfb, pth); return e && e.content ? new TextDecoder().decode(e.content) : ''; }).join(' ').replace(/<[^>]+>/g, ' '); };
+  if (ext === 'pdf') return (await pdfPagesText(u8)).join('\n');
+  if (ext === 'docx') return xmlText(/word\/(document|header\d*|footer\d*)\.xml$/);
+  if (ext === 'pptx') return xmlText(/ppt\/slides\/slide\d+\.xml$/);
+  if (/^(xlsx|xls|csv)$/.test(ext)) { const wb = XLSX.read(u8, { type: 'array' }); return wb.SheetNames.map(n => XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n'); }
+  if (ext === 'txt') return new TextDecoder().decode(u8);
+  return '';
+}
+const nn = t => norm(String(t ?? '').normalize('NFKC'));
+const squash = t => nn(t).replace(/[^\p{L}\p{N}]/gu, '');
+const NAME_STOP = /مدرسه|للتعليم|التعليم|الاساسي|ما بعد|للبنين|للبنات|البنين|البنات|بنين|بنات|الصفوف|الصف|صباحي|مسائي/g;
+const STOP_WORDS = new Set(['مدرسه', 'للتعليم', 'التعليم', 'الاساسي', 'ما', 'بعد', 'للبنين', 'للبنات', 'البنين', 'البنات', 'بنين', 'بنات', 'الصفوف', 'الصف', 'صباحي', 'مسائي']);
+const words = t => nn(t).replace(/[^\p{L}\p{N}]+/gu, ' ').split(' ').filter(Boolean);
+function schoolKeys() {
+  return S.schools.map(x => { const n = nn(x.name), bare = n.replace(/\(?\s*\d+\s*[-–]\s*\d+\s*\)?/g, ' ');
+    return { code: String(x.code), full: squash(n), core: squash(bare.replace(NAME_STOP, ' ')),
+      toks: words(bare).filter(w => w.length >= 2 && !STOP_WORDS.has(w) && !/^\d+$/.test(w)),
+      nums: (toLatinNum(n).match(/\d+/g) || []), period: /مسائي/.test(n) || x.period === 'مسائي' ? 'مسائي' : /صباحي/.test(n) ? 'صباحي' : '' }; });
+}
+/* Returns {code} when one school is identified, {cands} when several are possible, or null.
+ * Names match by their words in any order, since PDFs often store Arabic words reversed. */
+function matchText(text, keys, codes) {
+  const runs = (toLatinNum(nn(text)).match(/\d+/g) || []).map(x => x.replace(/^0+(?=\d{3})/, '')).filter(x => codes.has(x));
+  const freq = new Map(); runs.forEach(x => freq.set(x, (freq.get(x) || 0) + 1));
+  const byFreq = [...freq].sort((a, b) => b[1] - a[1]);
+  if (byFreq.length === 1 || (byFreq.length > 1 && byFreq[0][1] >= 2 * byFreq[1][1])) return { code: byFreq[0][0], how: 'code' };
+  const T = squash(text), TR = [...T].reverse().join('');
+  const W = new Set(words(text)); [...W].forEach(w => W.add([...w].reverse().join('')));
+  const allNums = new Set(toLatinNum(text).match(/\d+/g) || []);
+  let best = 0, cands = [];
+  keys.forEach(k => {
+    let sc = 0;
+    if (k.full.length >= 4 && (T.includes(k.full) || TR.includes(k.full))) sc = 1000 + k.full.length;
+    else {
+      const byWords = k.toks.length && k.toks.join('').length >= 3 && k.toks.every(w => W.has(w)) ? k.toks.join('').length : 0;
+      const bySub = k.core.length >= 3 && (T.includes(k.core) || TR.includes(k.core)) ? k.core.length : 0;
+      sc = Math.max(byWords, bySub);
+      if (sc) { if (k.nums.length && k.nums.every(d => allNums.has(d) || allNums.has([...d].reverse().join('')))) sc += 0.5; if (k.period && W.has(k.period)) sc += 0.25; }
+    }
+    if (sc > best) { best = sc; cands = [k.code]; } else if (sc && sc === best) cands.push(k.code);
   });
-  S.bulk.images = list; renderSide();
+  if (cands.length === 1) return { code: cands[0], how: 'name' };
+  if (cands.length > 1) return { cands };
+  if (byFreq.length > 1) return { cands: byFreq.slice(0, 5).map(x => x[0]) };
+  return null;
+}
+const pageRange = pg => { const out = []; pg.forEach(i => { const last = out[out.length - 1]; if (last && last[1] === i - 1) last[1] = i; else out.push([i, i]); }); return out.map(([a, z]) => a === z ? `${a + 1}` : `${a + 1}–${z + 1}`).join('، '); };
+async function bulkAnalyze(kind, files) {
+  const prev = S.bulk[kind];
+  const st = S.bulk[kind] = { items: [], analyzing: true, done: 0, total: 0, split: prev ? prev.split !== false : true };
+  const list = [...files].filter(f => kind === 'images' ? (/^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic)$/i.test(f.name)) : !/^\./.test(f.name));
+  st.total = list.length; renderSide();
+  const keys = schoolKeys(), codes = new Set(keys.map(k => k.code));
+  const nameOf = c => (S.schools.find(x => String(x.code) === c) || {}).name || c;
+  for (const f of list) {
+    const base = f.name.replace(/\.[^.]+$/, '');
+    let m = matchText(base, keys, codes), how = m && m.code ? (m.how === 'code' ? 'رمز المدرسة في اسم الملف' : 'اسم المدرسة في اسم الملف') : '';
+    let pushed = false;
+    if ((!m || !m.code) && kind === 'docs') {
+      try {
+        const u8 = new Uint8Array(await f.arrayBuffer()), isPdf = /\.pdf$/i.test(f.name);
+        if (isPdf && st.split) {
+          const pages = await pdfPagesText(u8), groups = []; let cur = null;
+          pages.forEach((t, i) => {
+            const pm = matchText(t, keys, codes), c = pm && pm.code || '';
+            if (!c && cur) { cur.pages.push(i); return; }           // a page without a school continues the previous one
+            if (cur && cur.code === c) cur.pages.push(i);
+            else { cur = { code: c, pages: [i], cands: pm && pm.cands || [] }; groups.push(cur); }
+          });
+          if (groups.length > 1) {
+            groups.forEach(g => st.items.push({ file: f, pages: g.pages, code: g.code, cands: g.cands, how: g.code ? 'من محتوى الصفحات' : '',
+              name: `${base} - ${g.code ? nameOf(g.code) : 'صفحات ' + pageRange(g.pages)}.pdf` }));
+            pushed = true;
+          } else if (groups[0] && groups[0].code) { m = { code: groups[0].code }; how = 'من محتوى الملف'; }
+          else if (groups[0] && groups[0].cands.length) m = { cands: groups[0].cands };
+        } else {
+          const text = await docText(f, u8), mc = text ? matchText(text, keys, codes) : null;
+          if (mc && mc.code) { m = mc; how = 'من محتوى الملف'; } else if (mc && mc.cands && mc.cands.length) m = mc;
+        }
+      } catch (e) { if (e && e.message === 'LIB') toast('تعذر تحميل قارئ ملفات PDF. تحقق من الاتصال.'); }
+    }
+    if (!pushed) st.items.push({ file: f, name: f.name, code: m && m.code || '', cands: m && m.cands || [], how });
+    st.done++; renderSide();
+  }
+  st.analyzing = false; renderSide(); bulkSyncButton();
+  const bad = st.items.filter(x => !x.code).length;
+  if (bad) toast(bad === 1 ? `تعذر تمييز ${kind === 'images' ? 'صورة واحدة' : 'ملف واحد'} لأي مدرسة. اختر المدرسة يدوياً من القائمة، وإلا فلن ${kind === 'images' ? 'تُرفع' : 'يُرفع'}.` : `تعذر تمييز ${bad} من ${kind === 'images' ? 'الصور' : 'الملفات'} لأي مدرسة. اختر المدرسة يدوياً من القائمة، وإلا فلن تُرفع.`);
+}
+function bulkFilesCard(kind) {
+  const st = S.bulk[kind], img = kind === 'images', sm = schoolMap();
+  const items = st ? st.items : [], ok = items.filter(x => x.code).length;
+  const opts = (sel, cands) => `<option value="">— اختر المدرسة —</option>${cands.length ? `<optgroup label="المدارس المحتملة">${cands.map(c => `<option value="${esc(c)}" ${sel === c ? 'selected' : ''}>${esc((sm.get(c) || {}).name || c)} — ${esc(c)}</option>`).join('')}</optgroup>` : ''}<optgroup label="كل المدارس">${S.schools.map(x => `<option value="${esc(x.code)}" ${sel === String(x.code) && !cands.includes(sel) ? 'selected' : ''}>${esc(x.name)} — ${esc(x.code)}</option>`).join('')}</optgroup>`;
+  return `<section class="card"><h3>${img ? 'الصور' : 'المستندات'}</h3>
+    <p class="d" style="margin:0">يُربط كل ملف بمدرسته بهذا الترتيب: رمز المدرسة في اسم الملف، ثم اسم المدرسة في اسم الملف${img ? '' : '، ثم الرمز أو الاسم داخل الملف نفسه (PDF وWord وExcel وPowerPoint والنصوص)'}. يمكنك تغيير المدرسة لأي ملف من القائمة.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="bk-pick" data-v="${kind}">${ic(img ? 'image' : 'doc', 16)} اختيار ${img ? 'صور' : 'ملفات'}</button><button class="btn" data-act="bk-pickdir" data-v="${kind}">${ic('folder', 16)} اختيار مجلد كامل</button></div>
+    ${img ? '' : `<label class="radio"><input type="checkbox" data-bk="split" ${!st || st.split !== false ? 'checked' : ''}> <span>ملف PDF يحتوي على عدة مدارس: قسّمه حسب الصفحات، وتأخذ كل مدرسة صفحاتها فقط</span></label>`}
+    ${st && st.analyzing ? `<div><b style="font-size:13.5px">جارٍ فحص الملفات… ${st.done.toLocaleString('ar-OM')} من ${st.total.toLocaleString('ar-OM')}</b><div class="bk-progress" style="margin-top:6px"><i style="width:${st.total ? Math.round(st.done / st.total * 100) : 0}%"></i></div></div>` : ''}
+    ${items.length ? `<div class="bk-sum"><span class="sa-pill ok">${ok.toLocaleString('ar-OM')} ${img ? 'صورة مرتبطة' : 'ملف مرتبط'} بمدرسة</span>${items.length - ok ? `<span class="sa-pill off">${(items.length - ok).toLocaleString('ar-OM')} لم يُعرف لأي مدرسة: اختر المدرسة يدوياً أو لن ${items.length - ok === 1 ? 'يُرفع' : 'تُرفع'}</span>` : ''}</div>
+      <div class="table-wrap"><table class="bk-files"><thead><tr><th>الملف</th><th>طريقة التعرف</th><th>المدرسة</th></tr></thead><tbody>
+      ${items.map((x, i) => `<tr class="${x.code ? '' : 'bk-row-bad'}"><td dir="auto">${esc(x.name)}${x.pages ? `<br><span style="color:var(--muted);font-size:12px">الصفحات: ${pageRange(x.pages)}</span>` : ''}</td>
+        <td style="font-size:12.5px">${x.code ? esc(x.how || 'اختيار يدوي') : x.cands.length ? `<span class="bk-bad">يحتمل ${x.cands.length.toLocaleString('ar-OM')} مدارس</span>` : '<span class="bk-bad">لم يُعثر على رمز أو اسم مدرسة</span>'}</td>
+        <td><select class="input" data-bkf="${kind}:${i}" aria-label="مدرسة الملف">${opts(x.code, x.cands)}</select></td></tr>`).join('')}
+      </tbody></table></div>` : ''}</section>`;
 }
 function bulkBody() {
   const b = S.bulk, sm = schoolMap(), leaves = bulkLeaves();
-  const tabs = [['table', 'جدول من Excel', 'table'], ['images', 'صور', 'image'], ['text', 'نصوص', 'text']];
+  const tabs = [['table', 'جدول من Excel', 'table'], ['images', 'صور', 'image'], ['docs', 'مستندات', 'doc'], ['text', 'نصوص', 'text']];
   const nameOf = c => (sm.get(String(c)) || {}).name || '';
   const prog = b.busy ? `<div class="card"><b>جارٍ الحفظ في Drive… ${b.done.toLocaleString('ar-OM')} من ${b.total.toLocaleString('ar-OM')}</b><div class="bk-progress"><i style="width:${b.total ? Math.round(b.done / b.total * 100) : 0}%"></i></div><p class="d" style="margin:0">لا تغلق الصفحة حتى ينتهي الحفظ.</p></div>` : '';
   const res = b.result ? `<div class="card" style="border-color:var(--accent)"><h3>${ic('check', 18)} تم الإدخال</h3><p style="margin:0">أُضيفت المعلومة لـ <b>${b.result.added.toLocaleString('ar-OM')}</b> مدرسة${b.result.skipped.length ? `، وتعذر إدخال ${b.result.skipped.length.toLocaleString('ar-OM')}: <span class="bk-bad">${esc(b.result.skipped.slice(0, 20).join('، '))}</span>` : ''}.</p></div>` : '';
   const common = `<section class="card"><div class="row-flex">
       <div class="field" style="flex-basis:260px"><label for="bkLeaf">القسم الذي تُضاف إليه المعلومة</label><select class="input" id="bkLeaf" data-bk="leaf"><option value="">اختر القسم…</option>${leaves.map(l => `<option value="${esc(l.id)}" ${b.leaf === l.id ? 'selected' : ''}>${esc(l.label)}</option>`).join('')}</select></div>
-      <div class="field" style="flex-basis:260px"><label for="bkTitle">عنوان المعلومة${b.tab === 'table' ? '' : ' (اختياري)'}</label><input class="input" id="bkTitle" data-bk="title" value="${esc(b.title)}" maxlength="200" placeholder="${b.tab === 'table' ? 'مثال: المدارس الرافدة والمرفود منها' : b.tab === 'images' ? 'اتركه فارغاً ليُستخدم اسم الصورة' : 'مثال: ملاحظة الزيارة'}"></div></div>
+      <div class="field" style="flex-basis:260px"><label for="bkTitle">عنوان المعلومة${b.tab === 'table' ? '' : ' (اختياري)'}</label><input class="input" id="bkTitle" data-bk="title" value="${esc(b.title)}" maxlength="200" placeholder="${b.tab === 'table' ? 'مثال: المدارس الرافدة والمرفود منها' : b.tab === 'images' ? 'اتركه فارغاً ليُستخدم اسم الصورة' : b.tab === 'docs' ? 'اتركه فارغاً ليُستخدم اسم الملف' : 'مثال: ملاحظة الزيارة'}"></div></div>
     <label class="radio"><input type="checkbox" id="bkShare" data-bk="share" ${b.share ? 'checked' : ''}> <span>إظهارها في حساب كل مدرسة (ترى كل مدرسة ما يخصها فقط)</span></label></section>`;
   let main = '', count = 0;
   if (b.tab === 'table') {
@@ -1738,13 +1864,9 @@ function bulkBody() {
         <div class="bk-prev">${t.groups.slice(0, 2).map(g => `<div><b style="font-size:13.5px">${esc(nameOf(g.code))} <span style="color:var(--muted);font-weight:400">${esc(g.code)}</span></b>
           <div class="table-wrap" style="margin-top:6px"><table class="info-table"><thead><tr>${g.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${g.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('')}
           ${t.groups.length > 2 ? `<p class="d" style="margin:0">ومدارس أخرى: ${(t.groups.length - 2).toLocaleString('ar-OM')}.</p>` : ''}</div></section>` : ''}`;
-  } else if (b.tab === 'images') {
-    const im = b.images || []; const ok = im.filter(x => x.code); count = ok.length;
-    main = `<section class="card"><h3>الصور</h3>
-      <p class="d" style="margin:0">يُربط كل ملف بمدرسته من رمزها المكتوب في اسم الصورة، مثل <span dir="ltr">1101.jpg</span> أو <span dir="ltr">مبنى 1101 الأمامي.png</span>.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="bk-pickimg">${ic('image', 16)} اختيار صور</button><button class="btn" data-act="bk-pickdir">${ic('folder', 16)} اختيار مجلد كامل</button></div>
-      ${im.length ? `<div class="bk-sum"><span class="sa-pill ok">${ok.length.toLocaleString('ar-OM')} صورة مرتبطة بمدرسة</span>${im.length - ok.length ? `<span class="sa-pill off">${(im.length - ok.length).toLocaleString('ar-OM')} صورة بلا رمز معروف</span>` : ''}</div>
-        <div class="table-wrap"><table><thead><tr><th>الصورة</th><th>المدرسة</th></tr></thead><tbody>${im.slice(0, 200).map(x => `<tr><td dir="auto">${esc(x.file.name)}</td><td>${x.code ? `${esc(nameOf(x.code))} <span style="color:var(--muted)">${esc(x.code)}</span>` : '<span class="bk-bad">لم يُعثر على رمز مدرسة في الاسم، لن تُرفع</span>'}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
+  } else if (b.tab === 'images' || b.tab === 'docs') {
+    const st = b[b.tab]; count = st && !st.analyzing ? st.items.filter(x => x.code).length : 0;
+    main = bulkFilesCard(b.tab);
   } else {
     const t = b.text; count = t ? t.groups.length : 0;
     main = `<section class="card"><h3>النصوص</h3>
@@ -1757,7 +1879,7 @@ function bulkBody() {
   return `<div class="bk-tabs"><div class="seg">${tabs.map(([k, l, i]) => `<button data-act="bk-tab" data-v="${k}" class="${b.tab === k ? 'on' : ''}">${ic(i, 15)} ${l}</button>`).join('')}</div></div>
     ${res}${prog}${common}${main}
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="bk-go" ${can ? '' : 'disabled'}>${ic('upload', 18)} إدخال المعلومة لـ ${count.toLocaleString('ar-OM')} مدرسة</button><span id="bkWhy" style="color:var(--muted);font-size:13px">${why}</span></div>
-    <input type="file" id="fBulkX" accept=".xlsx,.xls,.csv" hidden><input type="file" id="fBulkImg" accept="image/*" multiple hidden><input type="file" id="fBulkDir" webkitdirectory multiple hidden>`;
+    <input type="file" id="fBulkX" accept=".xlsx,.xls,.csv" hidden><input type="file" id="fBulkImg" accept="image/*" multiple hidden><input type="file" id="fBulkDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" multiple hidden><input type="file" id="fBulkDir" webkitdirectory multiple hidden>`;
 }
 function bulkTextPrev() {
   const t = S.bulk.text; if (!t) return '';
@@ -1768,7 +1890,7 @@ function bulkTextPrev() {
 function bulkSyncButton() {
   // refresh the submit button without re-rendering inputs the user is typing in
   const b = S.bulk, btn = $('[data-act="bk-go"]'); if (!btn) return;
-  const count = b.tab === 'table' ? (b.table ? b.table.groups.length : 0) : b.tab === 'text' ? (b.text ? b.text.groups.length : 0) : (b.images || []).filter(x => x.code).length;
+  const count = b.tab === 'table' ? (b.table ? b.table.groups.length : 0) : b.tab === 'text' ? (b.text ? b.text.groups.length : 0) : (b[b.tab] && !b[b.tab].analyzing ? b[b.tab].items.filter(x => x.code).length : 0);
   btn.disabled = !(count && b.leaf && (b.tab !== 'table' || b.title.trim()) && !b.busy);
   btn.innerHTML = `${ic('upload', 18)} إدخال المعلومة لـ ${count.toLocaleString('ar-OM')} مدرسة`;
   const w = $('#bkWhy'); if (w) w.textContent = !count ? '' : !b.leaf ? 'اختر القسم أولاً.' : b.tab === 'table' && !b.title.trim() ? 'اكتب عنوان الجدول.' : '';
@@ -1778,16 +1900,25 @@ async function bulkGo() {
   b.result = null; b.busy = true; b.done = 0;
   let added = 0; const skipped = [];
   try {
-    if (b.tab === 'images') {
-      const list = b.images.filter(x => x.code); b.total = list.length; renderSide();
+    if (b.tab === 'images' || b.tab === 'docs') {
+      const list = b[b.tab].items.filter(x => x.code); b.total = list.length; renderSide();
+      const pdfDocs = new Map();
       for (const x of list) {
         try {
-          let mime = mimeOf(x.file), blob = await compressImage(x.file); if (blob !== x.file) mime = 'image/jpeg';
-          if (blob.size > 10 * 1048576) { skipped.push(x.file.name); continue; }
-          const name = blob !== x.file ? x.file.name.replace(/\.[^.]+$/, '') + '.jpg' : x.file.name;
-          const r = await call('apiUpload', x.code, b.leaf, { name, mime, data: toB64(new Uint8Array(await blob.arrayBuffer())) }, { title: b.title.trim() || x.file.name.replace(/\.[^.]+$/, ''), share: b.share, bulk: true });
+          let blob = x.file, mime = mimeOf(x.file), name = x.name;
+          if (x.pages) {
+            await loadScript(LIB.pdfLib);
+            if (!pdfDocs.has(x.file)) pdfDocs.set(x.file, await window.PDFLib.PDFDocument.load(await x.file.arrayBuffer(), { ignoreEncryption: true }));
+            const out = await window.PDFLib.PDFDocument.create();
+            (await out.copyPages(pdfDocs.get(x.file), x.pages)).forEach(pg => out.addPage(pg));
+            blob = new Blob([await out.save()], { type: 'application/pdf' }); mime = 'application/pdf';
+          } else if (b.tab === 'images') {
+            blob = await compressImage(x.file); if (blob !== x.file) { mime = 'image/jpeg'; name = x.file.name.replace(/\.[^.]+$/, '') + '.jpg'; }
+          }
+          if (blob.size > 10 * 1048576) { skipped.push(x.name); b.done++; renderSide(); continue; }
+          const r = await call('apiUpload', x.code, b.leaf, { name, mime, data: toB64(new Uint8Array(await blob.arrayBuffer())) }, { title: b.title.trim() || name.replace(/\.[^.]+$/, ''), share: b.share, bulk: true });
           S.ver = r.ver; added++;
-        } catch { skipped.push(x.file.name); }
+        } catch { skipped.push(x.name); }
         b.done++; renderSide();
       }
     } else {
@@ -1805,7 +1936,7 @@ async function bulkGo() {
     b.busy = false;
     b.result = { added, skipped };
     if (added && b.tab === 'table' && b.x) lsSet(XMAP_KEY + xSig(b.x), b.x.st);
-    if (added) { if (b.tab === 'table') { b.table = null; b.x = null; } else if (b.tab === 'text') { b.text = null; b.raw = ''; } else b.images = null; }
+    if (added) { if (b.tab === 'table') { b.table = null; b.x = null; } else if (b.tab === 'text') { b.text = null; b.raw = ''; } else b[b.tab] = null; }
     renderSide();
     if (S.infoCode) loadInfo(S.infoCode);
     toast(added ? `أُضيفت المعلومة لـ ${added} مدرسة` : 'لم تُضف أي معلومة');
@@ -2269,8 +2400,8 @@ document.addEventListener('click', async e => {
     case 'bulk': openSide('bulk'); break;
     case 'bk-tab': if (!S.bulk.busy && S.bulk.tab !== el.dataset.v) { S.bulk.tab = el.dataset.v; S.bulk.result = null; S.bulk.title = ''; renderSide(); } break;
     case 'bk-pickx': $('#fBulkX').click(); break;
-    case 'bk-pickimg': $('#fBulkImg').click(); break;
-    case 'bk-pickdir': $('#fBulkDir').click(); break;
+    case 'bk-pick': $(el.dataset.v === 'images' ? '#fBulkImg' : '#fBulkDoc').click(); break;
+    case 'bk-pickdir': S.bulk.dirFor = el.dataset.v; $('#fBulkDir').click(); break;
     case 'bk-go': bulkGo(); break;
     case 'bx-all': case 'bx-none': case 'bx-data': {
       const x = S.bulk.x; if (!x) break; const st = x.st;
@@ -2453,7 +2584,12 @@ document.addEventListener('change', e => {
   if (el.dataset.bk === 'leaf' && S.bulk) { S.bulk.leaf = el.value; bulkSyncButton(); }
   if (el.dataset.bk === 'share' && S.bulk) S.bulk.share = el.checked;
   if (el.id === 'fBulkX' && el.files[0]) { const f = el.files[0]; el.value = ''; bulkReadExcel(f); }
-  if ((el.id === 'fBulkImg' || el.id === 'fBulkDir') && el.files.length) { const fs = [...el.files]; el.value = ''; bulkImages(fs); }
+  if ((el.id === 'fBulkImg' || el.id === 'fBulkDoc' || el.id === 'fBulkDir') && el.files.length) {
+    const fs = [...el.files], kind = el.id === 'fBulkImg' ? 'images' : el.id === 'fBulkDoc' ? 'docs' : (S.bulk.dirFor || S.bulk.tab);
+    el.value = ''; bulkAnalyze(kind, fs);
+  }
+  if (el.dataset.bkf && S.bulk) { const [kind, i] = el.dataset.bkf.split(':'), it = S.bulk[kind] && S.bulk[kind].items[+i]; if (it) { it.code = el.value; it.how = el.value ? 'اختيار يدوي' : ''; renderSide(); bulkSyncButton(); } }
+  if (el.dataset.bk === 'split' && S.bulk) { S.bulk.docs = S.bulk.docs || { items: [], analyzing: false, done: 0, total: 0 }; S.bulk.docs.split = el.checked; }
   if (el.name === 'audMode') { const b = $('#audBox'); if (b) b.hidden = el.value !== 'list'; }
   if (el.dataset.aud != null) audCount();
   if (el.id === 'saF') { S.saF = el.value; S.saN = 50; $('#saList').innerHTML = saListHTML(); }
