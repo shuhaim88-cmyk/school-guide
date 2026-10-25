@@ -7,7 +7,18 @@
 <script>
 /* Startup guard: if the app script below never starts (e.g. the file was not pasted in full), explain it instead of hanging. */
 window.__bootErrors = [];
-window.addEventListener('error', function (e) { window.__bootErrors.push((e.message || 'خطأ') + (e.lineno ? ' (سطر ' + e.lineno + ')' : '')); });
+window.addEventListener('error', function (e) {
+  var msg = (e.message || 'خطأ') + (e.lineno ? ' (سطر ' + e.lineno + ':' + e.colno + ')' : '');
+  try {
+    var src = [].slice.call(document.scripts).filter(function (x) { return !x.src && x.text.length > 5000; })[0];
+    if (src && e.lineno) {
+      var lines = src.text.split('\n'), start = document.documentElement.outerHTML.split('\n').findIndex(function (l) { return l.indexOf('(() => {') >= 0; });
+      var cand = [lines[e.lineno - 1], lines[e.lineno - start - 1], lines[e.lineno - 2]].filter(Boolean).map(function (l) { return l.trim().slice(0, 140); });
+      if (cand.length) msg += ' — ' + cand.join(' ‖ ');
+    }
+  } catch (x) {}
+  window.__bootErrors.push(msg);
+});
 setTimeout(function () {
   if (window.__appStarted) return;
   var b = document.getElementById('boot'); if (!b) return;
@@ -602,7 +613,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const seg = s => { const t = String(s).trim().replace(/[^A-Za-z0-9_\-~:@]/g, c => '+' + c.codePointAt(0).toString(16)); return t || '_'; };
-const norm = s => String(s ?? '').toLowerCase().replace(/[ً-ْـ‌-‏]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىیي]/g, 'ي').replace(/ک/g, 'ك').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/\s+/g, ' ').trim();
+const norm = s => String(s ?? '').toLowerCase().replace(/[\u064B-\u0652\u0640\u200C-\u200F]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىیي]/g, 'ي').replace(/ک/g, 'ك').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/\s+/g, ' ').trim();
 const fmtSize = b => b < 1024 ? b + ' بايت' : b < 1048576 ? (b / 1024).toFixed(0) + ' ك.ب' : (b / 1048576).toFixed(1) + ' م.ب';
 const fmtDate = t => { try { return new Date(t).toLocaleDateString('ar-OM', { year:'numeric', month:'short', day:'numeric' }); } catch { return ''; } };
 const initials = n => String(n || '؟').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('');
@@ -1764,10 +1775,10 @@ async function docText(file, u8) {
   return '';
 }
 const nn = t => norm(String(t ?? '').normalize('NFKC'));
-const squash = t => nn(t).replace(/[^\p{L}\p{N}]/gu, '');
+const squash = t => nn(t).replace(/[^A-Za-z0-9\u00C0-\u024F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '');
 const NAME_STOP = /مدرسه|للتعليم|التعليم|الاساسي|ما بعد|للبنين|للبنات|البنين|البنات|بنين|بنات|الصفوف|الصف|صباحي|مسائي/g;
 const STOP_WORDS = new Set(['مدرسه', 'للتعليم', 'التعليم', 'الاساسي', 'ما', 'بعد', 'للبنين', 'للبنات', 'البنين', 'البنات', 'بنين', 'بنات', 'الصفوف', 'الصف', 'صباحي', 'مسائي']);
-const words = t => nn(t).replace(/[^\p{L}\p{N}]+/gu, ' ').split(' ').filter(Boolean);
+const words = t => nn(t).replace(/[^A-Za-z0-9\u00C0-\u024F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g, ' ').split(' ').filter(Boolean);
 function schoolKeys() {
   return S.schools.map(x => { const n = nn(x.name), bare = n.replace(/\(?\s*\d+\s*[-–]\s*\d+\s*\)?/g, ' ');
     return { code: String(x.code), full: squash(n), core: squash(bare.replace(NAME_STOP, ' ')),
