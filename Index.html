@@ -352,6 +352,19 @@ tr:last-child td{border-bottom:0}
 .bk-progress{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
 .bk-progress i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .2s}
 
+/* ---------- Excel reading settings ---------- */
+.bx-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;max-height:300px;overflow:auto;padding:2px}
+.bx-col{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:4px 8px;background:var(--surface-2);min-width:0}
+.bx-col.on{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));background:var(--accent-soft)}
+.bx-col input[type=checkbox]{accent-color:var(--accent);flex:none}
+.bx-letter{font-size:11px;color:var(--muted);min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
+.bx-name{flex:1;min-width:0;border:0;background:transparent;font-size:13px;outline:none;padding:3px 2px;border-radius:6px}
+.bx-name:focus{background:var(--surface)}
+.raw-grid td,.raw-grid th{font-size:12px;padding:4px 8px;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.raw-grid td.hdr{background:var(--hr-soft)}
+.raw-grid td.codec{background:var(--accent-soft);font-weight:600}
+.raw-grid th.sel{color:var(--accent)}
+
 /* ---------- school accounts ---------- */
 .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
 .seg button{border:0;background:none;padding:7px 16px;border-radius:999px;font-weight:500;color:var(--muted)}
@@ -1589,27 +1602,110 @@ function bulkText(raw) {
   });
   return { groups: [...by].map(([code, text]) => ({ code, text })), unknown };
 }
+/* ---- Excel: read the sheet as a grid, let the user decide how to read it, then build one table per school ---- */
+const XMAP_KEY = 'schools-guide:xlsxmap:';
+function xlsxGrid(ws) {
+  if (!ws || !ws['!ref']) return { grid: [], width: 0, c0: 0 };
+  const rg = XLSX.utils.decode_range(ws['!ref']), r0 = rg.s.r, c0 = rg.s.c, width = rg.e.c - c0 + 1;
+  const grid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true, range: ws['!ref'] })
+    .map(r => Array.from({ length: width }, (_, i) => String(r[i] ?? '').replace(/\s+/g, ' ').trim()));
+  // merged cells: copy the value into every cell of the merge (e.g. a school code spanning 3 rows, a subject spanning 2 columns)
+  (ws['!merges'] || []).forEach(m => {
+    const v = (grid[m.s.r - r0] || [])[m.s.c - c0]; if (v == null || v === '') return;
+    for (let y = m.s.r; y <= m.e.r; y++) for (let x = m.s.c; x <= m.e.c; x++) { const row = grid[y - r0]; if (row && x - c0 < width) row[x - c0] = v; }
+  });
+  return { grid, width, c0 };
+}
+const xLetter = (x, c) => XLSX.utils.encode_col(c + x.c0);
+function xName(x, c) {
+  const st = x.st; if (st.names[c]) return st.names[c];
+  const parts = []; for (let i = 0; i < st.hdr; i++) { const v = (x.grid[i] || [])[c]; if (v && !parts.includes(v)) parts.push(v); }
+  return parts.join(' - ') || 'عمود ' + xLetter(x, c);
+}
+const xSig = x => x.sheet + '#' + x.grid.slice(0, 4).map(r => r.slice(0, 40).join('|')).join('#');
+function xDefaults(x) {
+  const sm = schoolMap(), g = x.grid;
+  let code = 0, best = -1;
+  for (let c = 0; c < x.width; c++) { const n = g.slice(0, 300).filter(r => sm.has(codeOf(r[c]))).length; if (n > best) { best = n; code = c; } }
+  let hdr = g.findIndex(r => sm.has(codeOf(r[code]))); if (hdr < 0) hdr = 1; hdr = Math.min(hdr, 10);
+  const st = { hdr, code, names: {}, sel: [], transpose: false, hideEmpty: true };
+  x.st = st;
+  const body = g.slice(hdr);
+  for (let c = 0; c < x.width; c++) {
+    if (c === code || !body.some(r => r[c])) continue;
+    if (/اسم المدرس|^الجنس$|^الولاي|رمز المدرس|اسم المدرسة/.test(xName(x, c))) continue;
+    st.sel.push(c);
+  }
+  const saved = lsGet(XMAP_KEY + xSig(x));
+  if (saved && saved.code < x.width) Object.assign(st, saved, { sel: (saved.sel || []).filter(c => c < x.width) });
+}
+function xLoadSheet(name) {
+  const x = S.bulk.x; x.sheet = name;
+  Object.assign(x, xlsxGrid(x.wb.Sheets[name]));
+  xDefaults(x); xBuild();
+}
+function xBuild() {
+  const x = S.bulk.x, st = x.st, sm = schoolMap(), by = new Map(), unknown = new Set();
+  x.grid.slice(st.hdr).forEach(r => {
+    const raw = r[st.code], c = codeOf(raw); if (!c) return;
+    if (!sm.has(c)) { if (/\d/.test(c)) unknown.add(raw); return; }
+    if (!by.has(c)) by.set(c, []); by.get(c).push(r);
+  });
+  const sel = st.sel.filter(c => c !== st.code).sort((a, b) => a - b);
+  const empty = row => !row.some(v => String(v).trim());
+  const groups = [...by].map(([code, rows]) => {
+    if (!sel.length) return { code, cols: [], rows: [] };
+    if (st.transpose) {
+      const lab = sel[0], rest = sel.slice(1);
+      const cols = ['البند', ...rows.map((r, i) => r[lab] || String(i + 1))];
+      let out = rest.map(c => [xName(x, c), ...rows.map(r => r[c])]);
+      if (st.hideEmpty) out = out.filter(row => !empty(row.slice(1)));
+      return { code, cols, rows: out };
+    }
+    let out = rows.map(r => sel.map(c => r[c]));
+    if (st.hideEmpty) out = out.filter(row => !empty(row));
+    return { code, cols: sel.map(c => xName(x, c)), rows: out };
+  }).filter(g => g.rows.length);
+  S.bulk.table = { file: x.file, groups, unknown: [...unknown], sel };
+}
 async function bulkReadExcel(file) {
   if (!window.XLSX) return toast('تعذر تحميل قارئ ملفات Excel. تحقق من الاتصال وأعد فتح الصفحة.');
   try {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false, blankrows: false }).map(r => r.map(c => String(c ?? '').trim()));
-    const sm = schoolMap();
-    const width = Math.max(0, ...rows.map(r => r.length));
-    let cols, body = rows;
-    if (rows.length && !sm.has(codeOf(rows[0][0]))) { cols = rows[0].slice(1, width); body = rows.slice(1); }
-    else cols = Array.from({ length: width - 1 }, (_, i) => 'عمود ' + (i + 1));
-    cols = cols.map((c, i) => c || 'عمود ' + (i + 1));
-    while (cols.length < width - 1) cols.push('عمود ' + (cols.length + 1));
-    const by = new Map(), unknown = [];
-    body.forEach(r => { const c = codeOf(r[0]); if (!c) return; if (!sm.has(c)) { unknown.push(String(r[0])); return; }
-      const vals = cols.map((_, i) => r[i + 1] ?? ''); if (!vals.some(v => String(v).trim())) return;
-      if (!by.has(c)) by.set(c, []); by.get(c).push(vals); });
-    S.bulk.table = { file: file.name, cols, groups: [...by].map(([code, rows]) => ({ code, rows })), unknown, codeCol: rows.length ? rows[0][0] : '' };
+    S.bulk.x = { file: file.name, wb, sheets: wb.SheetNames.slice() };
+    xLoadSheet(wb.SheetNames[0]);
     if (!S.bulk.title) S.bulk.title = file.name.replace(/\.[^.]+$/, '');
     renderSide();
   } catch { toast('تعذر قراءة الملف. احفظه بصيغة xlsx ثم أعد المحاولة.'); }
 }
+function xMapCard() {
+  const x = S.bulk.x; if (!x) return '';
+  const st = x.st, cols = [...Array(x.width).keys()].filter(c => c !== st.code);
+  const hasData = c => x.grid.slice(st.hdr).some(r => r[c]);
+  const opt = (v, l, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
+  const lab = st.transpose && st.sel.length ? xName(x, [...st.sel].sort((a, b) => a - b)[0]) : '';
+  const rawRows = x.grid.slice(0, Math.min(x.grid.length, st.hdr + 7));
+  return `<section class="card"><h3>طريقة قراءة الملف</h3>
+    <p class="d" style="margin:0">اختر الأعمدة وطريقة عرضها. الخلايا المدمجة تُملأ تلقائياً، مثل رمز مدرسة يمتد على عدة صفوف أو مادة تمتد على عمودين. تُحفظ هذه الإعدادات وتُستعمل تلقائياً مع أي ملف بنفس الشكل.</p>
+    <div class="row-flex">
+      ${x.sheets.length > 1 ? `<div class="field"><label for="bxSheet">ورقة العمل</label><select class="input" id="bxSheet" data-bx="sheet">${x.sheets.map(n => opt(esc(n), esc(n), esc(x.sheet))).join('')}</select></div>` : ''}
+      <div class="field"><label for="bxHdr">عدد صفوف العناوين</label><input class="input" id="bxHdr" data-bx="hdr" type="number" min="0" max="10" value="${st.hdr}"></div>
+      <div class="field" style="flex-basis:200px"><label for="bxCode">عمود رمز المدرسة</label><select class="input" id="bxCode" data-bx="code">${[...Array(x.width).keys()].map(c => opt(c, `${xLetter(x, c)} — ${esc(xName(x, c))}`, st.code)).join('')}</select></div>
+      <div class="field" style="flex-basis:240px"><label for="bxTr">شكل الجدول</label><select class="input" id="bxTr" data-bx="transpose">${opt(0, 'كما في الملف (كل صف يبقى صفاً)', st.transpose ? 1 : 0)}${opt(1, 'مقلوب (كل عمود يصبح صفاً)', st.transpose ? 1 : 0)}</select></div>
+    </div>
+    <label class="radio"><input type="checkbox" data-bx="hideEmpty" ${st.hideEmpty ? 'checked' : ''}> <span>إخفاء الصفوف الفارغة</span></label>
+    ${st.transpose ? `<div class="note">أول عمود محدد${lab ? ` «${esc(lab)}»` : ''} يصبح عناوين أعمدة الجدول (مثل اللازم، التعزيز، الإجمالي)، وكل عمود آخر يصبح صفاً باسمه.</div>` : ''}
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-size:14px">الأعمدة المطلوبة</b><span class="state-pill">${st.sel.length.toLocaleString('ar-OM')} من ${cols.length.toLocaleString('ar-OM')}</span><span class="spacer"></span>
+      <button class="btn ghost sm" data-act="bx-data">${ic('check', 14)} الأعمدة التي فيها بيانات</button><button class="btn ghost sm" data-act="bx-all">تحديد الكل</button><button class="btn ghost sm" data-act="bx-none">${ic('x', 14)} إلغاء الكل</button></div>
+    <div class="bx-cols">${cols.map(c => `<label class="bx-col ${st.sel.includes(c) ? 'on' : ''}" title="${hasData(c) ? '' : 'لا توجد بيانات في هذا العمود'}"><input type="checkbox" data-bxcol="${c}" ${st.sel.includes(c) ? 'checked' : ''}><span class="bx-letter" dir="ltr">${xLetter(x, c)}</span><input class="bx-name" data-bxname="${c}" value="${esc(xName(x, c))}" aria-label="اسم العمود ${xLetter(x, c)}" ${hasData(c) ? '' : 'style="opacity:.55"'}></label>`).join('')}</div>
+    <p class="d" style="margin:0">يمكنك تعديل اسم أي عمود بالكتابة عليه مباشرة.</p>
+    <details><summary style="cursor:pointer;color:var(--accent);font-size:13px;font-weight:600">عرض أول صفوف الملف كما هي</summary>
+      <div class="table-wrap" style="margin-top:8px"><table class="raw-grid"><thead><tr><th></th>${[...Array(x.width).keys()].map(c => `<th class="${st.sel.includes(c) ? 'sel' : ''}" dir="ltr">${xLetter(x, c)}</th>`).join('')}</tr></thead>
+      <tbody>${rawRows.map((r, i) => `<tr><th dir="ltr">${i + 1}</th>${r.map((v, c) => `<td class="${i < st.hdr ? 'hdr' : c === st.code ? 'codec' : ''}" title="${esc(v)}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <p class="d" style="margin:6px 0 0">الصفوف الملونة بالبرتقالي هي صفوف العناوين، والعمود الملون بالأخضر هو عمود رمز المدرسة.</p></details>
+  </section>`;
+}
+
 function bulkImages(files) {
   const sm = schoolMap();
   const list = [...files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic)$/i.test(f.name)).map(f => {
@@ -1634,12 +1730,14 @@ function bulkBody() {
   if (b.tab === 'table') {
     const t = b.table; count = t ? t.groups.length : 0;
     main = `<section class="card"><h3>ملف Excel</h3>
-      <p class="d" style="margin:0">العمود الأول: رمز المدرسة. الأعمدة التالية تظهر لكل مدرسة جدولاً بعناوين الصف الأول نفسها، وفيه صفوف رمزها فقط.</p>
-      <div><button class="btn" data-act="bk-pickx">${ic('upload', 16)} ${t ? 'اختيار ملف آخر' : 'اختيار ملف Excel'}</button> ${t ? `<span style="color:var(--muted);font-size:13px">${esc(t.file)}</span>` : ''}</div>
-      ${t ? `<div class="bk-sum"><span class="sa-pill ok">${t.groups.length.toLocaleString('ar-OM')} مدرسة</span><span class="sa-pill">${t.groups.reduce((a, g) => a + g.rows.length, 0).toLocaleString('ar-OM')} صف</span><span class="sa-pill">الأعمدة: ${esc(t.cols.join('، '))}</span>${t.unknown.length ? `<span class="sa-pill off">${t.unknown.length.toLocaleString('ar-OM')} رمز غير موجود: ${esc(t.unknown.slice(0, 8).join('، '))}${t.unknown.length > 8 ? '…' : ''}</span>` : ''}</div>
-        <div class="bk-prev">${t.groups.slice(0, 3).map(g => `<div><b style="font-size:13.5px">${esc(nameOf(g.code))} <span style="color:var(--muted);font-weight:400">${esc(g.code)}</span></b>
-          <div class="table-wrap" style="margin-top:6px"><table class="info-table"><thead><tr>${t.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${g.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('')}
-          ${t.groups.length > 3 ? `<p class="d" style="margin:0">ومدارس أخرى: ${t.groups.length - 3}.</p>` : ''}</div>` : ''}</section>`;
+      <p class="d" style="margin:0">ارفع ملفاً فيه عمود لرمز المدرسة. بعد الرفع تحدد طريقة قراءته: صفوف العناوين، وعمود الرمز، والأعمدة المطلوبة، وشكل الجدول.</p>
+      <div><button class="btn" data-act="bk-pickx">${ic('upload', 16)} ${t ? 'اختيار ملف آخر' : 'اختيار ملف Excel'}</button> ${t ? `<span style="color:var(--muted);font-size:13px">${esc(t.file)}</span>` : ''}</div></section>
+      ${xMapCard()}
+      ${t ? `<section class="card"><h3>النتيجة</h3><div class="bk-sum"><span class="sa-pill ok">${t.groups.length.toLocaleString('ar-OM')} مدرسة</span><span class="sa-pill">${t.groups.reduce((a, g) => a + g.rows.length, 0).toLocaleString('ar-OM')} صف</span>${t.unknown.length ? `<span class="sa-pill off">${t.unknown.length.toLocaleString('ar-OM')} رمز غير موجود: ${esc(t.unknown.slice(0, 8).join('، '))}${t.unknown.length > 8 ? '…' : ''}</span>` : ''}</div>
+        <b style="font-size:14px">معاينة كما ستظهر في حساب المدرسة</b>
+        <div class="bk-prev">${t.groups.slice(0, 2).map(g => `<div><b style="font-size:13.5px">${esc(nameOf(g.code))} <span style="color:var(--muted);font-weight:400">${esc(g.code)}</span></b>
+          <div class="table-wrap" style="margin-top:6px"><table class="info-table"><thead><tr>${g.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${g.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('')}
+          ${t.groups.length > 2 ? `<p class="d" style="margin:0">ومدارس أخرى: ${(t.groups.length - 2).toLocaleString('ar-OM')}.</p>` : ''}</div></section>` : ''}`;
   } else if (b.tab === 'images') {
     const im = b.images || []; const ok = im.filter(x => x.code); count = ok.length;
     main = `<section class="card"><h3>الصور</h3>
@@ -1693,7 +1791,7 @@ async function bulkGo() {
         b.done++; renderSide();
       }
     } else {
-      const src = b.tab === 'table' ? b.table.groups.map(g => ({ code: g.code, type: 'table', title: b.title.trim(), text: JSON.stringify({ cols: b.table.cols, rows: g.rows }) }))
+      const src = b.tab === 'table' ? b.table.groups.map(g => ({ code: g.code, type: 'table', title: b.title.trim(), text: JSON.stringify({ cols: g.cols, rows: g.rows }) }))
         : b.text.groups.map(g => ({ code: g.code, type: 'text', title: b.title.trim(), text: g.text }));
       b.total = src.length; renderSide();
       for (let i = 0; i < src.length; i += 40) {
@@ -1706,7 +1804,8 @@ async function bulkGo() {
   } finally {
     b.busy = false;
     b.result = { added, skipped };
-    if (added) { if (b.tab === 'table') b.table = null; else if (b.tab === 'text') { b.text = null; b.raw = ''; } else b.images = null; }
+    if (added && b.tab === 'table' && b.x) lsSet(XMAP_KEY + xSig(b.x), b.x.st);
+    if (added) { if (b.tab === 'table') { b.table = null; b.x = null; } else if (b.tab === 'text') { b.text = null; b.raw = ''; } else b.images = null; }
     renderSide();
     if (S.infoCode) loadInfo(S.infoCode);
     toast(added ? `أُضيفت المعلومة لـ ${added} مدرسة` : 'لم تُضف أي معلومة');
@@ -2173,6 +2272,11 @@ document.addEventListener('click', async e => {
     case 'bk-pickimg': $('#fBulkImg').click(); break;
     case 'bk-pickdir': $('#fBulkDir').click(); break;
     case 'bk-go': bulkGo(); break;
+    case 'bx-all': case 'bx-none': case 'bx-data': {
+      const x = S.bulk.x; if (!x) break; const st = x.st;
+      st.sel = a === 'bx-none' ? [] : [...Array(x.width).keys()].filter(c => c !== st.code && (a === 'bx-all' || x.grid.slice(st.hdr).some(r => r[c])));
+      xBuild(); renderSide(); break;
+    }
     case 'inbox': openSide('inbox'); break;
     case 'closeside': closeSide(); break;
     case 'nfilter': S.notesFilter = el.dataset.v; renderSide(); break;
@@ -2332,6 +2436,20 @@ document.addEventListener('input', e => {
 let sfT;
 document.addEventListener('change', e => {
   const el = e.target;
+  if (S.bulk && S.bulk.x && (el.dataset.bx || el.dataset.bxcol != null || el.dataset.bxname != null)) {
+    const x = S.bulk.x, st = x.st;
+    if (el.dataset.bx === 'sheet') xLoadSheet(el.value);
+    else {
+      if (el.dataset.bx === 'hdr') st.hdr = Math.max(0, Math.min(10, parseInt(toLatin(el.value), 10) || 0));
+      if (el.dataset.bx === 'code') { st.code = +el.value; st.sel = st.sel.filter(c => c !== st.code); }
+      if (el.dataset.bx === 'transpose') st.transpose = el.value === '1';
+      if (el.dataset.bx === 'hideEmpty') st.hideEmpty = el.checked;
+      if (el.dataset.bxcol != null) { const c = +el.dataset.bxcol; st.sel = el.checked ? [...new Set([...st.sel, c])] : st.sel.filter(v => v !== c); }
+      if (el.dataset.bxname != null) { const c = +el.dataset.bxname, v = el.value.trim(); if (v) st.names[c] = v; else delete st.names[c]; }
+      xBuild();
+    }
+    renderSide(); bulkSyncButton(); return;
+  }
   if (el.dataset.bk === 'leaf' && S.bulk) { S.bulk.leaf = el.value; bulkSyncButton(); }
   if (el.dataset.bk === 'share' && S.bulk) S.bulk.share = el.checked;
   if (el.id === 'fBulkX' && el.files[0]) { const f = el.files[0]; el.value = ''; bulkReadExcel(f); }
