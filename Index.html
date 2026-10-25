@@ -4,6 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>دليل المدارس</title>
+<script>
+/* Startup guard: if the app script below never starts (e.g. the file was not pasted in full), explain it instead of hanging. */
+window.__bootErrors = [];
+window.addEventListener('error', function (e) { window.__bootErrors.push((e.message || 'خطأ') + (e.lineno ? ' (سطر ' + e.lineno + ')' : '')); });
+setTimeout(function () {
+  if (window.__appStarted) return;
+  var b = document.getElementById('boot'); if (!b) return;
+  var errs = window.__bootErrors.slice(0, 3).join(' • ');
+  b.innerHTML = '<div style="max-width:560px;padding:24px;text-align:center;line-height:1.9;font-family:Tahoma,sans-serif">'
+    + '<h3 style="margin:0 0 8px">لم يكتمل تشغيل التطبيق</h3>'
+    + '<p style="margin:0">غالباً لم يُنسخ ملف <b>Index</b> كاملاً إلى محرر Apps Script. يجب أن يكون آخر سطر فيه <b dir="ltr">&lt;/html&gt;</b>. '
+    + 'انسخه من جديد كاملاً (الأفضل من زر Raw في GitHub)، ثم احفظ وانشر إصداراً جديداً.</p>'
+    + (errs ? '<p dir="auto" style="margin:10px 0 0;font-size:12px;opacity:.8">تفاصيل الخطأ: ' + errs.replace(/</g, '&lt;') + '</p>' : '')
+    + '</div>';
+}, 9000);
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
@@ -679,6 +695,7 @@ function endSession() { lsSet(TOKEN_KEY, null); S.token = null; S.me = null; S.v
 
 /* ================= boot ================= */
 async function boot() {
+  window.__appStarted = true;
   $('#boot').hidden = false;
   $('#boot').innerHTML = `<div style="display:grid;justify-items:center;gap:14px"><span id="bootMark">${MARK}</span><span>جارٍ تحميل دليل المدارس من Google Drive…</span></div>`;
   S.token = lsGet(TOKEN_KEY);
