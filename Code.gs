@@ -22,10 +22,10 @@ const HEAD = {
   users: ['المعرف', 'الاسم', 'الدور', 'بصمة الرقم السري', 'الأقسام المستثناة', 'تاريخ الإضافة'],
   notes: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'عنوان المعلومة',
     'نص الملاحظة', 'كاتبها', 'معرف الكاتب', 'دور الكاتب', 'التاريخ', 'قرأها'],
-  accounts: ['رمز المدرسة', 'اسم المدرسة', 'بصمة كلمة المرور', 'حالة كلمة المرور', 'حالة الحساب', 'آخر دخول', 'تاريخ تغيير كلمة المرور']
+  accounts: ['رمز المدرسة', 'اسم المدرسة', 'بصمة كلمة المرور', 'حالة كلمة المرور', 'حالة الحساب', 'آخر دخول', 'تاريخ تغيير كلمة المرور', 'أقسام مضافة لها', 'أقسام مستبعدة عنها']
 };
 // أعمدة جدول حسابات المدارس (تبدأ من 0)
-const A = { code: 0, sname: 1, h: 2, pw: 3, status: 4, last: 5, changed: 6 };
+const A = { code: 0, sname: 1, h: 2, pw: 3, status: 4, last: 5, changed: 6, plus: 7, minus: 8 };
 const PW = { def: 'افتراضية', changed: 'تم تغييرها', reset: 'أُعيد تعيينها' };
 const ST = { active: 'مفعّل', disabled: 'موقوف' };
 // من يرى المعلومة من حسابات المدارس
@@ -93,6 +93,11 @@ function sheet_(k) {
     sh.setRightToLeft(true);
     if (k === 'notes' || k === 'accounts') sh.getRange(k === 'notes' ? 'B:B' : 'A:A').setNumberFormat('@');
   }
+  if (k === 'accounts' && !ACC_HEAD_OK_) {
+    const h = sh.getRange(1, A.plus + 1, 1, 2);
+    if (String(h.getValues()[0][0]) !== HEAD.accounts[A.plus]) h.setValues([[HEAD.accounts[A.plus], HEAD.accounts[A.minus]]]).setFontWeight('bold').setBackground('#D5EDE8');
+    ACC_HEAD_OK_ = true;
+  }
   if (k === 'info' && !INFO_HEAD_OK_) {
     const h = sh.getRange(1, I.aud + 1, 1, 2);
     if (String(h.getValues()[0][0]) !== HEAD.info[I.aud]) { h.setValues([[HEAD.info[I.aud], HEAD.info[I.tgt]]]).setFontWeight('bold').setBackground('#D5EDE8'); sh.getRange(2, I.tgt + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@'); }
@@ -100,7 +105,7 @@ function sheet_(k) {
   }
   return sh;
 }
-let INFO_HEAD_OK_ = false;
+let INFO_HEAD_OK_ = false, ACC_HEAD_OK_ = false;
 function rows_(k, display) {
   const sh = sheet_(k); const n = sh.getLastRow();
   if (n < 2) return [];
@@ -201,12 +206,12 @@ function schoolRows_() {
 function readAccounts_() {
   const out = {};
   if (sheet_('accounts').getLastRow() < 2) return out;
-  rows_('accounts').forEach((r, i) => { const c = String(r[A.code]).trim(); if (c) out[c] = { row: i + 2, h: String(r[A.h] || ''), pw: String(r[A.pw] || PW.def), status: String(r[A.status] || ST.active), last: r[A.last] instanceof Date ? r[A.last].getTime() : 0 }; });
+  rows_('accounts').forEach((r, i) => { const c = String(r[A.code]).trim(); if (c) out[c] = { row: i + 2, h: String(r[A.h] || ''), pw: String(r[A.pw] || PW.def), status: String(r[A.status] || ST.active), last: r[A.last] instanceof Date ? r[A.last].getTime() : 0, plus: idList_(r[A.plus]), minus: idList_(r[A.minus]) }; });
   return out;
 }
 function saveAccount_(code, patch) {
   const sh = sheet_('accounts'), acc = readAccounts_()[code];
-  const cur = acc ? sh.getRange(acc.row, 1, 1, HEAD.accounts.length).getValues()[0] : [code, schoolName_(code), '', PW.def, ST.active, '', ''];
+  const cur = acc ? sh.getRange(acc.row, 1, 1, HEAD.accounts.length).getValues()[0] : [code, schoolName_(code), '', PW.def, ST.active, '', '', '', ''];
   Object.keys(patch).forEach(k => { cur[A[k]] = patch[k]; });
   cur[A.code] = String(code); cur[A.sname] = schoolName_(code) || cur[A.sname];
   if (acc) sh.getRange(acc.row, 1, 1, HEAD.accounts.length).setValues([cur]); else sh.appendRow(cur);
@@ -253,11 +258,16 @@ function apiSchoolChangePassword(token, newPw, currentPw) {
 }
 function apiSchoolAccounts(token) {
   auth_(token, 'admin');
-  const accs = readAccounts_(), shared = {}; let all = 0;
-  rows_('info').forEach(r => { if (!r[I.id]) return; const a = String(r[I.aud] || ''); if (a === AUD.all) all++; else if (a === AUD.list) targets_(r).forEach(c => { shared[c] = (shared[c] || 0) + 1; }); });
-  return schoolRows_().map(s => { const a = accs[s.code];
-    return { code: s.code, name: s.name, wilayah: s.wilayah, status: a && a.status === ST.disabled ? 'disabled' : 'active',
-      pw: !a || a.pw === PW.def ? 'default' : a.pw === PW.reset ? 'reset' : 'changed', last: a ? a.last : 0, shared: all + (shared[s.code] || 0) }; });
+  const accs = readAccounts_(), roots = readSections_();
+  const seen = {}; // عدد المعلومات التي تراها كل مدرسة
+  const leavesOf = {};
+  const schools = schoolRows_();
+  schools.forEach(x => { leavesOf[x.code] = schoolLeaves_(x.code, roots, accs[x.code] || null); });
+  rows_('info').forEach(r => { const c = String(r[I.code]); if (r[I.id] && leavesOf[c] && leavesOf[c][String(r[I.leaf])]) seen[c] = (seen[c] || 0) + 1; });
+  return { defaults: schoolDefault_(), schools: schools.map(x => { const a = accs[x.code];
+    return { code: x.code, name: x.name, wilayah: x.wilayah, status: a && a.status === ST.disabled ? 'disabled' : 'active',
+      pw: !a || a.pw === PW.def ? 'default' : a.pw === PW.reset ? 'reset' : 'changed', last: a ? a.last : 0,
+      plus: a ? a.plus : [], minus: a ? a.minus : [], sections: Object.keys(leavesOf[x.code]).length, seen: seen[x.code] || 0 }; }) };
 }
 function apiResetSchoolPassword(token, code) {
   auth_(token, 'admin');
@@ -270,35 +280,50 @@ function apiSetSchoolStatus(token, code, active) {
   return withLock_(() => { saveAccount_(String(code).trim(), { status: active ? ST.active : ST.disabled }); return { ok: true }; });
 }
 
-/* ---------- جمهور المعلومة من حسابات المدارس ---------- */
-const targets_ = r => String(r[I.tgt] || '').split(',').map(x => x.trim()).filter(String);
-function visibleToSchool_(r, code) {
-  const a = String(r[I.aud] || '');
-  return a === AUD.all || (a === AUD.list && targets_(r).indexOf(String(code)) >= 0);
+/* ---------- ما تراه حسابات المدارس ----------
+ * كل مدرسة ترى معلومات مدرستها فقط، وفي الأقسام المسموحة لها فقط.
+ * الأقسام المسموحة = التحديد الجماعي لكل المدارس + أقسام مضافة لهذه المدرسة − أقسام مستبعدة عنها.
+ * تحديد قسم رئيسي أو فرعي يشمل كل ما تحته، ومنه الأقسام التي تُضاف لاحقاً. */
+const idList_ = v => String(v || '').split(',').map(x => x.trim()).filter(String);
+const targets_ = r => idList_(r[I.tgt]);   // عمود المشاركة القديم، للقراءة فقط
+const schoolDefault_ = () => idList_(props_().getProperty('schoolSections'));
+// يعيد دالة تقول هل القسم (أو أحد آبائه) ضمن مجموعة معرفات
+function coverage_(roots) {
+  const parent = {};
+  const walk = (list, p) => list.forEach(n => { parent[n.id] = p; walk(n.children || [], n.id); });
+  walk(roots, '');
+  return (set, id) => { for (let x = id; x; x = parent[x]) if (set[x]) return true; return false; };
 }
-// المعلومة تظهر في قسمها لدى مدرستها الأصلية، ولدى كل مدرسة شوركت معها
-const inSchool_ = (r, code) => String(r[I.code]) === String(code) || visibleToSchool_(r, code);
-// أقسام حساب المدرسة: فقط الأقسام التي فيها معلومات مشاركة معها
+const asSet_ = list => { const o = {}; (list || []).forEach(x => { o[x] = true; }); return o; };
+// معرفات الأقسام الأخيرة (التي تحمل المعلومات) المسموحة لهذه المدرسة
+function schoolLeaves_(code, roots, acc) {
+  const covered = coverage_(roots), def = asSet_(schoolDefault_());
+  acc = acc === undefined ? readAccounts_()[String(code)] : acc;
+  const plus = asSet_(acc ? acc.plus : []), minus = asSet_(acc ? acc.minus : []);
+  const out = {};
+  const walk = list => list.forEach(n => { if ((n.children || []).length) walk(n.children); else if ((covered(def, n.id) || covered(plus, n.id)) && !covered(minus, n.id)) out[n.id] = true; });
+  walk(roots);
+  return out;
+}
+// تستطيع المدرسة رؤية الصف إذا كان لمدرستها وفي قسم مسموح لها
+const schoolSees_ = (r, code, leaves) => String(r[I.code]) === String(code) && !!leaves[String(r[I.leaf])];
 function schoolRoots_(code, roots) {
-  const has = {};
-  rows_('info').forEach(r => { if (r[I.id] && visibleToSchool_(r, code)) has[String(r[I.leaf])] = true; });
+  const leaves = schoolLeaves_(code, roots);
   const filter = list => list.map(n => {
-    if (!n.children.length) return has[n.id] ? n : null;
+    if (!(n.children || []).length) return leaves[n.id] ? n : null;
     const ch = filter(n.children);
-    return ch.length ? Object.assign({}, n, { children: ch }) : (has[n.id] ? Object.assign({}, n, { children: [] }) : null);
+    return ch.length ? Object.assign({}, n, { children: ch }) : null;
   }).filter(Boolean);
   return filter(roots);
 }
-function apiSetAudience(token, code, leaf, itemId, mode, codes) {
-  const u = auth_(token, 'edit');
-  const known = {}; schoolRows_().forEach(s => { known[s.code] = true; });
-  const list = mode === 'list' ? (codes || []).map(c => String(c).trim()).filter(c => known[c]) : [];
-  if (mode === 'list' && !list.length) throw new Error('NO_SCHOOLS');
-  return withLock_(() => {
-    const row = findInfoRow_(itemId); if (!row) throw new Error('NOT_FOUND');
-    sheet_('info').getRange(row, I.aud + 1, 1, 2).setValues([[mode === 'all' ? AUD.all : mode === 'list' ? AUD.list : '', list.join(',')]]);
-    return leafResult_(u, code, leaf);
-  });
+function apiSetSchoolDefault(token, ids) {
+  auth_(token, 'admin');
+  return withLock_(() => { props_().setProperty('schoolSections', (ids || []).map(String).join(',')); return { ver: bump_() }; });
+}
+function apiSetSchoolOverride(token, code, plus, minus) {
+  auth_(token, 'admin');
+  if (!schoolUser_(code)) throw new Error('NOT_FOUND');
+  return withLock_(() => { saveAccount_(String(code).trim(), { plus: (plus || []).map(String).join(','), minus: (minus || []).map(String).join(',') }); return { ver: bump_() }; });
 }
 
 /* ---------- ما يُسمح للمستخدم برؤيته ---------- */
@@ -334,8 +359,9 @@ function rowToItem_(r) {
 // u: المستخدم الحالي (لحساب المدرسة تُعرض المعلومات المشاركة معها فقط، وتُحذف بيانات المشاركة الداخلية)
 function infoFor_(code, allowed, u) {
   const out = {}, school = u && u.role === 'school';
+  const leaves = school ? schoolLeaves_(code, readSections_()) : null;
   rows_('info').forEach(r => {
-    if (!r[I.id] || !(school ? visibleToSchool_(r, code) : inSchool_(r, code))) return;
+    if (!r[I.id] || !(school ? schoolSees_(r, code, leaves) : String(r[I.code]) === String(code))) return;
     const leaf = String(r[I.leaf]);
     if (allowed && !allowed[leaf]) return;
     const it = rowToItem_(r);
@@ -440,7 +466,7 @@ function apiAddNote(token, code, leaf, itemId, text) {
   return withLock_(() => {
     const row = findInfoRow_(itemId); if (!row) throw new Error('NOT_FOUND');
     const ir = sheet_('info').getRange(row, 1, 1, HEAD.info.length).getValues()[0];
-    if (u.role === 'school' && !visibleToSchool_(ir, u.school)) throw new Error('FORBIDDEN');
+    if (u.role === 'school' && !schoolSees_(ir, u.school, schoolLeaves_(u.school, readSections_()))) throw new Error('FORBIDDEN');
     const label = String(ir[I.title] || ir[I.fname] || '') || ({ text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية', table: 'جدول' }[String(ir[I.type])] || 'معلومة');
     const out = new Array(HEAD.notes.length).fill('');
     out[N.id] = newId_(); out[N.code] = String(code); out[N.sname] = String(ir[I.sname] || schoolName_(code)); out[N.leaf] = String(leaf);
@@ -578,7 +604,7 @@ function apiGetFile(token, fileId) {
   const row = rows_('info').find(r => String(r[I.fid]) === String(fileId));
   if (!row) throw new Error('NOT_FOUND');
   if (u.role === 'viewer' && !allowedLeaves_(u, readSections_())[String(row[I.leaf])]) throw new Error('FORBIDDEN');
-  if (u.role === 'school' && !visibleToSchool_(row, u.school)) throw new Error('FORBIDDEN');
+  if (u.role === 'school' && !schoolSees_(row, u.school, schoolLeaves_(u.school, readSections_()))) throw new Error('FORBIDDEN');
   const blob = DriveApp.getFileById(String(fileId)).getBlob();
   return { data: Utilities.base64Encode(blob.getBytes()), mime: blob.getContentType(), name: String(row[I.fname]) };
 }

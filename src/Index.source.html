@@ -1351,9 +1351,7 @@ function composer(it) {
     <div class="row"><button type="button" class="btn ghost sm" data-act="cancel-compose">إلغاء</button><button class="btn primary sm">${ic('check', 16)} حفظ</button></div></form>`;
 }
 function itemCard(it, ed) {
-  const audLabel = it.aud === 'all' ? 'جميع المدارس' : it.aud === 'list' ? `${(it.targets || []).length.toLocaleString('ar-OM')} مدرسة` : 'غير مرئية للمدارس';
-  const sharedFrom = it.home && String(it.home) !== String(S.school) ? `<span class="shared-from">مشتركة من ${esc(it.homeName || it.home)}</span>` : '';
-  const audBtn = ed ? `${sharedFrom}<button class="btn ghost sm aud-btn ${it.aud ? 'on' : ''}" data-act="aud" data-id="${it.id}" title="من يرى هذه المعلومة من حسابات المدارس">${ic('school', 14)} ${audLabel}</button>` : '';
+  const audBtn = '';   // who sees what is set per section in Settings → School accounts
   const noteBtn = `<button class="btn ghost sm" data-act="note" data-id="${it.id}" title="أضف ملاحظة تصل إلى المحررين">${ic('note', 14)} ملاحظة</button>`;
   if (it.type === 'table') {
     const d = parseTable(it.text);
@@ -1603,7 +1601,7 @@ function parseTable(t) {
   catch { return { cols: [], rows: [] }; }
 }
 const codeOf = v => toLatinNum(v).replace(/\.0+$/, '').replace(/\s+/g, '');
-function bulkInit() { return { tab: 'table', leaf: '', title: '', share: true, table: null, text: null, images: null, busy: false, done: 0, total: 0, result: null }; }
+function bulkInit() { return { tab: 'table', leaf: '', title: '', share: false, table: null, text: null, images: null, busy: false, done: 0, total: 0, result: null }; }
 function bulkLeaves() {
   const out = []; const walk = (list, trail) => list.forEach(n => { const t = trail.concat(n.name); if ((n.children || []).length) walk(n.children, t); else out.push({ id: n.id, label: t.join(' › ') }); });
   walk(S.config.roots, []); return out;
@@ -1880,8 +1878,7 @@ function bulkBody() {
   const res = b.result ? `<div class="card" style="border-color:var(--accent)"><h3>${ic('check', 18)} تم الإدخال</h3><p style="margin:0">أُضيفت المعلومة لـ <b>${b.result.added.toLocaleString('ar-OM')}</b> مدرسة${b.result.skipped.length ? `، وتعذر إدخال ${b.result.skipped.length.toLocaleString('ar-OM')}: <span class="bk-bad">${esc(b.result.skipped.slice(0, 20).join('، '))}</span>` : ''}.</p></div>` : '';
   const common = `<section class="card"><div class="row-flex">
       <div class="field" style="flex-basis:260px"><label for="bkLeaf">القسم الذي تُضاف إليه المعلومة</label><select class="input" id="bkLeaf" data-bk="leaf"><option value="">اختر القسم…</option>${leaves.map(l => `<option value="${esc(l.id)}" ${b.leaf === l.id ? 'selected' : ''}>${esc(l.label)}</option>`).join('')}</select></div>
-      <div class="field" style="flex-basis:260px"><label for="bkTitle">عنوان المعلومة${b.tab === 'table' ? '' : ' (اختياري)'}</label><input class="input" id="bkTitle" data-bk="title" value="${esc(b.title)}" maxlength="200" placeholder="${b.tab === 'table' ? 'مثال: المدارس الرافدة والمرفود منها' : b.tab === 'images' ? 'اتركه فارغاً ليُستخدم اسم الصورة' : b.tab === 'docs' ? 'اتركه فارغاً ليُستخدم اسم الملف' : 'مثال: ملاحظة الزيارة'}"></div></div>
-    <label class="radio"><input type="checkbox" id="bkShare" data-bk="share" ${b.share ? 'checked' : ''}> <span>إظهارها في حساب كل مدرسة (ترى كل مدرسة ما يخصها فقط)</span></label></section>`;
+      <div class="field" style="flex-basis:260px"><label for="bkTitle">عنوان المعلومة${b.tab === 'table' ? '' : ' (اختياري)'}</label><input class="input" id="bkTitle" data-bk="title" value="${esc(b.title)}" maxlength="200" placeholder="${b.tab === 'table' ? 'مثال: المدارس الرافدة والمرفود منها' : b.tab === 'images' ? 'اتركه فارغاً ليُستخدم اسم الصورة' : b.tab === 'docs' ? 'اتركه فارغاً ليُستخدم اسم الملف' : 'مثال: ملاحظة الزيارة'}"></div></div></section>`;
   let main = '', count = 0;
   if (b.tab === 'table') {
     const t = b.table; count = t ? t.groups.length : 0;
@@ -2069,33 +2066,59 @@ function statsBody() {
 }
 
 /* ================= audience of an item for school accounts ================= */
-function audDialog(it) {
-  const sel = new Set(it.aud === 'list' ? (it.targets || []).map(String) : []);
-  const mode = it.aud || 'none';
-  const opt = (v, title, d) => `<label class="radio"><input type="radio" name="audMode" value="${v}" ${mode === v ? 'checked' : ''}> <span><b>${title}</b>${d ? ` — ${d}` : ''}</span></label>`;
-  openDialog('من يرى هذه المعلومة من حسابات المدارس؟', `<div style="display:flex;flex-direction:column;gap:8px">
-      ${opt('none', 'لا تظهر لحسابات المدارس', 'تبقى للمستخدمين فقط')}${opt('all', 'جميع المدارس', 'تظهر في حساب كل مدرسة')}${opt('list', 'مدارس محددة', 'مدرسة واحدة أو أكثر')}</div>
-    <div id="audBox" ${mode === 'list' ? '' : 'hidden'} style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-      <input class="input" id="audQ" placeholder="ابحث باسم المدرسة أو رقمها" autocomplete="off">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="aud-all">${ic('check', 14)} تحديد الكل</button><button type="button" class="btn ghost sm" data-act="aud-none">${ic('x', 14)} إلغاء تحديد الكل</button><span class="spacer"></span><span class="state-pill" id="audCount"></span></div>
-      <div class="ex-tree" id="audList" style="max-height:36vh">${S.schools.map(sc => `<label class="ex-row aud-row" data-n="${esc(norm(sc.name) + ' ' + sc.code)}"><input type="checkbox" data-aud="${esc(sc.code)}" ${sel.has(String(sc.code)) ? 'checked' : ''}><span>${esc(sc.name)}</span><span style="color:var(--muted);font-size:12px;margin-inline-start:auto" dir="ltr">${esc(sc.code)}</span></label>`).join('')}</div>
-    </div><div class="lock-msg" id="audMsg"></div>`,
-    [{ label: 'إلغاء' }, { label: 'حفظ', cls: 'primary', fn: async () => {
-      const m = ($('input[name=audMode]:checked') || {}).value || 'none';
-      const codes = $$('#audList input[data-aud]:checked').map(i => i.dataset.aud);
-      if (m === 'list' && !codes.length) return $('#audMsg').textContent = MSG.NO_SCHOOLS;
-      $('#audMsg').innerHTML = '<span style="color:var(--muted)">جارٍ الحفظ…</span>';
-      try { await itemOp('apiSetAudience', it.id, m, codes); closeDialog(); toast(m === 'none' ? 'لم تعد المعلومة ظاهرة لحسابات المدارس' : m === 'all' ? 'ستظهر المعلومة لجميع المدارس' : `ستظهر المعلومة لـ ${codes.length} مدرسة`); renderSheet(); }
-      catch { $('#audMsg').textContent = ''; }
-    } }], 'wide');
-  audCount();
-}
-function audCount() { const c = $('#audCount'); if (c) c.textContent = `المحددة: ${$$('#audList input[data-aud]:checked').length.toLocaleString('ar-OM')} من ${S.schools.length.toLocaleString('ar-OM')}`; }
-
 /* ================= school accounts (Users tab) ================= */
+/* Sections a school sees = sections chosen for all schools + sections added for it − sections removed for it.
+ * Choosing a section includes everything under it. Each school sees only its own information. */
+function sectionParents() { const par = {}; const walk = (list, pp) => list.forEach(n => { par[n.id] = pp; walk(n.children || [], n.id); }); walk(S.config.roots, ''); return par; }
+function leafIds() { const out = []; const walk = list => list.forEach(n => { if ((n.children || []).length) walk(n.children); else out.push(n.id); }); walk(S.config.roots); return out; }
+function effectiveLeaves(def, plus, minus) {
+  const par = sectionParents(), D = new Set(def), P = new Set(plus), M = new Set(minus);
+  const cov = (set, id) => { for (let x = id; x; x = par[x]) if (set.has(x)) return true; return false; };
+  return new Set(leafIds().filter(id => (cov(D, id) || cov(P, id)) && !cov(M, id)));
+}
+function sectionNames(ids) {
+  const name = {}, path = {}; const walk = (list, trail) => list.forEach(n => { const t = trail.concat(n.name); name[n.id] = t.join(' › '); walk(n.children || [], t); }); walk(S.config.roots, []);
+  return ids.map(id => name[id]).filter(Boolean);
+}
+function secPicker(title, desc, checked, onSave, extra) {
+  const tree = (nodes, tone) => nodes.map(n => { const kids = (n.children || []).length;
+    const on = kids ? false : checked.has(n.id);
+    return `<div class="ex-node"><label class="ex-row"><input type="checkbox" data-ex="${esc(n.id)}" ${kids ? '' : 'data-leaf="1"'} ${on ? 'checked' : ''}><span class="ex-ic" style="--tone:var(--${tone})">${ic(n.icon || 'folder', 17)}</span><span>${esc(n.name)}</span></label>${kids ? `<div class="ex-kids">${tree(n.children, tone)}</div>` : ''}</div>`; }).join('');
+  openDialog(title, `<p style="margin:0 0 10px;color:var(--muted);font-size:13.5px">${desc}</p>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="ex-all" data-v="1">${ic('check', 15)} تحديد الكل</button><button type="button" class="btn ghost sm" data-act="ex-all" data-v="0">${ic('x', 15)} إلغاء الكل</button>${extra || ''}</div>
+    <div class="ex-tree" id="exTree" data-tri="1">${S.config.roots.map(r => `<div class="ex-root">${tree([r], r.tone)}</div>`).join('') || '<p>لا توجد أقسام بعد.</p>'}</div><div class="lock-msg" id="secMsg"></div>`,
+    [{ label: 'إلغاء' }, { label: 'حفظ', cls: 'primary', fn: async () => {
+      const leaves = new Set($$('#exTree input[data-leaf]').filter(i => i.checked).map(i => i.dataset.ex));
+      $('#secMsg').innerHTML = '<span style="color:var(--muted)">جارٍ الحفظ…</span>';
+      try { await onSave(leaves); closeDialog(); S.schAcc = null; renderPanel(); } catch { $('#secMsg').textContent = ''; }
+    } }], 'wide');
+  triSync();
+}
+// section picker: a section is ticked when everything under it is ticked, partly ticked when only some is
+function triSync() {
+  $$('#exTree input[data-ex]:not([data-leaf])').reverse().forEach(i => {
+    const leaves = $$('input[data-leaf]', i.closest('.ex-node')), on = leaves.filter(x => x.checked).length;
+    i.checked = !!leaves.length && on === leaves.length; i.indeterminate = on > 0 && on < leaves.length;
+  });
+}
+const leafIdsOf = n => (n.children || []).length ? n.children.flatMap(leafIdsOf) : [n.id];
+// the smallest list of sections that covers exactly the chosen leaves (a fully chosen section is stored as itself, so sections added later under it are included)
+function coverIds(leaves) { const out = []; const walk = list => list.forEach(n => { const l = leafIdsOf(n); if (l.every(id => leaves.has(id))) out.push(n.id); else walk(n.children || []); }); walk(S.config.roots); return out; }
+function secAllDialog() {
+  secPicker('الأقسام المتاحة لكل المدارس', 'ضع علامة ✓ أمام الأقسام التي تراها كل المدارس. ترى كل مدرسة معلوماتها هي فقط داخل هذه الأقسام. اختيار قسم رئيسي يشمل كل أقسامه الفرعية، ومنها ما يُضاف لاحقاً. ما خصصته لمدرسة بعينها يبقى كما هو.',
+    effectiveLeaves(S.schDef || [], [], []), async leaves => { const r = await call('apiSetSchoolDefault', coverIds(leaves)); S.ver = r.ver; toast('تم تحديث الأقسام لكل المدارس'); });
+}
+function secSchoolDialog(a) {
+  const def = effectiveLeaves(S.schDef || [], [], []);
+  secPicker(`الأقسام التي تراها «${esc(a.name)}»`, 'هذه هي الأقسام المتاحة لكل المدارس، مع ما أضفته أو استبعدته لهذه المدرسة. غيّر العلامات لإضافة أقسام لها أو استبعادها، وترى المدرسة معلوماتها هي فقط.',
+    effectiveLeaves(S.schDef || [], a.plus, a.minus),
+    async leaves => { const plus = [...leaves].filter(id => !def.has(id)), minus = [...def].filter(id => !leaves.has(id));
+      const r = await call('apiSetSchoolOverride', a.code, plus, minus); S.ver = r.ver; toast(plus.length || minus.length ? `تم تخصيص الأقسام لـ ${a.name}` : `${a.name} تتبع الآن التحديد العام`); },
+    a.plus.length || a.minus.length ? `<button type="button" class="btn ghost sm" data-act="sec-reset" data-code="${esc(a.code)}">${ic('up', 15)} إعادتها إلى التحديد العام</button>` : '');
+}
 async function loadSchoolAccounts() {
   if (S.schAccLoading) return; S.schAccLoading = true;
-  try { S.schAcc = await call('apiSchoolAccounts'); } catch { S.schAcc = S.schAcc || []; }
+  try { const r = await call('apiSchoolAccounts'); S.schAcc = r.schools; S.schDef = r.defaults || []; } catch { S.schAcc = S.schAcc || []; }
   S.schAccLoading = false;
   const c = $('#saCard'); if (c) c.innerHTML = schoolAccInner();
 }
@@ -2107,13 +2130,15 @@ function saFiltered() {
 function saListHTML() {
   const list = saFiltered(), shown = list.slice(0, S.saN || 50);
   return `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">${list.length.toLocaleString('ar-OM')} مدرسة</div>
-    <div class="table-wrap"><table class="sa-table"><thead><tr><th>المدرسة</th><th>اسم المستخدم</th><th>الحساب</th><th>كلمة المرور</th><th>آخر دخول</th><th class="num">المحتوى المخصص</th><th></th></tr></thead><tbody>
+    <div class="table-wrap"><table class="sa-table"><thead><tr><th>المدرسة</th><th>اسم المستخدم</th><th>الحساب</th><th>كلمة المرور</th><th>آخر دخول</th><th>الأقسام المتاحة لها</th><th></th></tr></thead><tbody>
     ${shown.map(a => `<tr><td><b style="font-weight:600">${esc(a.name)}</b><br><span style="color:var(--muted);font-size:12px">${esc(a.wilayah)}</span></td>
       <td dir="ltr" style="text-align:end">${esc(a.code)}</td>
       <td><span class="sa-pill ${a.status === 'active' ? 'ok' : 'off'}">${a.status === 'active' ? 'مفعّل' : 'موقوف'}</span></td>
       <td><span class="sa-pill ${PW_LABEL[a.pw][1]}">${PW_LABEL[a.pw][0]}</span></td>
       <td style="color:var(--muted);font-size:12.5px">${a.last ? fmtDate(a.last) : 'لم تدخل بعد'}</td>
-      <td class="num">${a.shared ? `${a.shared.toLocaleString('ar-OM')} معلومة` : '<span style="color:var(--muted)">لا يوجد</span>'}</td>
+      <td><button class="btn ghost sm" data-act="sa-sec" data-code="${esc(a.code)}" title="تحديد الأقسام التي تراها هذه المدرسة">${ic('layers', 14)} ${a.sections.toLocaleString('ar-OM')} قسم</button>
+        ${a.plus.length || a.minus.length ? '<span class="sa-pill warn">مخصص لها</span>' : ''}
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">${a.seen ? `ترى ${a.seen.toLocaleString('ar-OM')} معلومة` : 'لا ترى معلومات بعد'}</div></td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn sm" data-act="sa-reset" data-code="${esc(a.code)}">${ic('key', 14)} إعادة تعيين كلمة المرور</button>
         <button class="btn ghost sm" data-act="sa-status" data-code="${esc(a.code)}" ${a.status === 'active' ? 'style="color:var(--danger)"' : ''}>${a.status === 'active' ? 'إيقاف' : 'تفعيل'}</button></div></td></tr>`).join('') || '<tr><td colspan="7">لا توجد مدارس مطابقة.</td></tr>'}
     </tbody></table></div>
@@ -2121,9 +2146,13 @@ function saListHTML() {
 }
 function schoolAccInner() {
   const head = `<h3>حسابات المدارس</h3>
-    <p class="d">لكل مدرسة حساب تلقائي: اسم المستخدم هو رقم المدرسة، وكلمة المرور المؤقتة هي رقمها أيضاً، ويُطلب منها تعيين كلمة مرور جديدة عند أول دخول. لا ترى المدرسة إلا مدرستها، ولا يظهر لها إلا ما تشاركه معها من زر «المدارس» أسفل كل معلومة.</p>`;
+    <p class="d">لكل مدرسة حساب تلقائي: اسم المستخدم هو رقم المدرسة، وكلمة المرور المؤقتة هي رقمها أيضاً، ويُطلب منها تعيين كلمة مرور جديدة عند أول دخول. لا ترى المدرسة إلا مدرستها، وفيها معلوماتها هي فقط، وفي الأقسام التي تحددها هنا فقط.</p>`;
   if (!S.schAcc) return head + '<div class="empty" style="padding:24px">جارٍ تحميل حسابات المدارس…</div>';
-  return head + `<div class="st-filters">
+  const top = sectionNames(S.schDef || []);
+  return head + `<div class="note" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px"><b>الأقسام المتاحة لكل المدارس:</b> ${top.length ? top.map(x => `<span class="sa-pill ok" style="margin:2px">${esc(x)}</span>`).join('') : '<span>لم يُحدد أي قسم بعد، فلا ترى المدارس أي معلومات.</span>'}</div>
+      <button class="btn primary sm" data-act="sa-secall">${ic('layers', 15)} تحديد الأقسام لكل المدارس</button></div>
+    <div class="st-filters">
       <div class="field" style="flex-basis:240px"><label for="saQ">بحث</label><input class="input" id="saQ" value="${esc(S.saQ || '')}" placeholder="اسم المدرسة أو رقمها" autocomplete="off"></div>
       <div class="field"><label for="saF">الحالة</label><select class="input" id="saF">${[['', 'الكل'], ['default', 'كلمة مرور افتراضية'], ['reset', 'أُعيد تعيينها'], ['changed', 'تم تغييرها'], ['disabled', 'حسابات موقوفة']].map(([k, l]) => `<option value="${k}" ${(S.saF || '') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     <div id="saList">${saListHTML()}</div>`;
@@ -2471,7 +2500,7 @@ document.addEventListener('click', async e => {
     case 'fp': S.fp = S.fp === el.dataset.v ? '' : el.dataset.v; renderChips(); renderGrid(); break;
     case 'tone': mutateConfig(c => { const { node } = findIn(c, el.dataset.p); if (node) node.tone = el.dataset.v; }); break;
     case 'excl': { const u = S.users.find(x => x.id === el.dataset.id); if (u) exclDialog(u); break; }
-    case 'ex-all': $$('#exTree input[data-ex]').forEach(i => { i.checked = el.dataset.v === '1'; }); break;
+    case 'ex-all': $$('#exTree input[data-ex]').forEach(i => { i.checked = el.dataset.v === '1'; i.indeterminate = false; }); break;
     case 'fw': S.fw = el.dataset.v; renderChips(); renderGrid(); break;
     case 'fg': S.fg = S.fg === el.dataset.v ? '' : el.dataset.v; renderChips(); renderGrid(); break;
     case 'orbit': orbitClick(el.dataset.id); break;
@@ -2483,9 +2512,10 @@ document.addEventListener('click', async e => {
     case 'retry': boot(); break;
     case 'mypin': $('.menu')?.remove(); if (S.me.role === 'school') schoolPwdDialog(); else pinDialog(S.me, true); break;
     case 'lmode': S.loginMode = el.dataset.v; lsSet('schools-guide:loginMode', S.loginMode); renderLock(); break;
-    case 'aud': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) audDialog(it); break; }
-    case 'aud-all': $$('#audList .aud-row').forEach(row => { if (!row.hidden) row.querySelector('input').checked = true; }); audCount(); break;
-    case 'aud-none': $$('#audList input[data-aud]').forEach(i => { i.checked = false; }); audCount(); break;
+    case 'sa-secall': secAllDialog(); break;
+    case 'sa-sec': { const a = (S.schAcc || []).find(x => x.code === el.dataset.code); if (a) secSchoolDialog(a); break; }
+    case 'sec-reset': { const def = effectiveLeaves(S.schDef || [], [], []); $$('#exTree input[data-leaf]').forEach(i => { i.checked = def.has(i.dataset.ex); });
+      triSync(); break; }
     case 'sa-more': S.saN += 50; $('#saList').innerHTML = saListHTML(); break;
     case 'sa-reset': {
       const a = (S.schAcc || []).find(x => x.code === el.dataset.code); if (!a) break;
@@ -2571,7 +2601,8 @@ document.addEventListener('change', e => {
   if (el.dataset.act === 'rename') { const v = el.value.trim(); if (!v) { renderPanel(); return; } mutateConfig(c => { const { node } = findIn(c, el.dataset.p); if (node) node.name = v; }); }
   if (el.dataset.ex !== undefined) {
     const node = el.closest('.ex-node');
-    $$('input[data-ex]', node).forEach(i => { i.checked = el.checked; });
+    $$('input[data-ex]', node).forEach(i => { i.checked = el.checked; i.indeterminate = false; });
+    if (el.closest('#exTree[data-tri]')) { triSync(); return; }
     let p = node.parentElement.closest('.ex-node');
     while (p) {
       const own = p.querySelector(':scope > .ex-row input');
@@ -2590,7 +2621,6 @@ document.addEventListener('input', e => {
   else if (S.mm && el.id === 'mmTitle') S.mm.title = el.value;
   if (el.dataset.bk === 'title' && S.bulk) { S.bulk.title = el.value; bulkSyncButton(); }
   if (el.id === 'bkPaste' && S.bulk) { S.bulk.raw = el.value; S.bulk.text = el.value.trim() ? bulkText(el.value) : null; $('#bkTextPrev').innerHTML = bulkTextPrev(); bulkSyncButton(); }
-  if (el.id === 'audQ') { const q = norm(el.value); $$('#audList .aud-row').forEach(row => { row.hidden = !!q && !row.dataset.n.includes(q); }); }
   if (el.id === 'saQ') { S.saQ = el.value; S.saN = 50; $('#saList').innerHTML = saListHTML(); }
   if (el.dataset.sf === 'q') { clearTimeout(sfT); sfT = setTimeout(() => { S.sf.q = el.value; S.sf.all = false; renderSide(); const q = $('#sfQ'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); }
 });
@@ -2620,8 +2650,6 @@ document.addEventListener('change', e => {
   }
   if (el.dataset.bkf && S.bulk) { const [kind, i] = el.dataset.bkf.split(':'), it = S.bulk[kind] && S.bulk[kind].items[+i]; if (it) { it.code = el.value; it.how = el.value ? 'اختيار يدوي' : ''; renderSide(); bulkSyncButton(); } }
   if (el.dataset.bk === 'split' && S.bulk) { S.bulk.docs = S.bulk.docs || { items: [], analyzing: false, done: 0, total: 0 }; S.bulk.docs.split = el.checked; }
-  if (el.name === 'audMode') { const b = $('#audBox'); if (b) b.hidden = el.value !== 'list'; }
-  if (el.dataset.aud != null) audCount();
   if (el.id === 'saF') { S.saF = el.value; S.saN = 50; $('#saList').innerHTML = saListHTML(); }
   const k = el.dataset.sf; if (!k || k === 'q') return;
   S.sf[k] = el.type === 'checkbox' ? el.checked : el.value; S.sf.all = false; S.sf.eall = false; renderSide();
