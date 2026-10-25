@@ -369,7 +369,20 @@ tr:last-child td{border-bottom:0}
   .sheet{width:100%}
 }
 /* ---------- bulk entry & table items ---------- */
-.info-table td,.info-table th{white-space:normal;min-width:90px;vertical-align:top}
+.info-table td,.info-table th{white-space:normal;vertical-align:top;padding:7px 9px;font-size:12.5px;overflow-wrap:normal;word-break:normal}
+.info-table th{min-width:56px}
+.info-table td:first-child,.info-table th:first-child{min-width:90px}
+.ex-sum .ok{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 10px;font-size:12px}
+.tbl-full .tbl-body{flex:1;overflow:auto;padding:20px max(16px,env(safe-area-inset-left,0px))}
+.tbl-full .info-table td,.tbl-full .info-table th{font-size:14px;padding:9px 12px}
+.tbl-full .info-table th{min-width:80px}
+.pdf-sheet{position:fixed;left:-20000px;top:0;width:max-content;max-width:3000px;min-width:720px;background:#fff;color:#111;padding:36px 40px;font-family:var(--f-body)}
+.pdf-sheet h1{font-family:var(--f-display);font-size:24px;margin:0 0 4px;color:#0d4f45}
+.pdf-sheet p{margin:0 0 18px;color:#555;font-size:14px}
+.pdf-sheet table{border-collapse:collapse;font-size:14px}
+.pdf-sheet th,.pdf-sheet td{border:1px solid #9fb3ae;padding:8px 12px;text-align:center;vertical-align:middle}
+.pdf-sheet th{background:#e3efec;color:#13302c;font-weight:600}
+.pdf-sheet td:first-child,.pdf-sheet th:first-child{text-align:start;font-weight:600;background:#f4f8f7}
 .info-table th{color:var(--ink);font-size:12.5px}
 .bk-tabs{display:flex;justify-content:center}
 .bk-prev{display:flex;flex-direction:column;gap:12px}
@@ -1357,10 +1370,9 @@ function itemCard(it, ed) {
     const d = parseTable(it.text);
     const acts3 = ed ? `<span class="acts"><button class="del" data-act="del-item" data-id="${it.id}" title="حذف" aria-label="حذف">${ic('trash', 16)}</button></span>` : '';
     return `<article class="item" data-item="${esc(it.id)}"><div class="item-top"><span class="k">${ic('table', 15)}</span><b>${esc(it.title || 'جدول')}</b>${acts3}</div>
-      <div class="table-wrap" data-lenis-prevent><table class="info-table"><thead><tr>${d.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
-        <tbody>${d.rows.map(row => `<tr>${d.cols.map((_, i) => `<td>${esc(row[i] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <div class="table-wrap" data-lenis-prevent>${tableHTML(d)}</div>
       <div class="item-foot" style="margin-top:10px"><div class="item-meta" style="margin:0">${esc(it.by || '')}${it.by ? ' · ' : ''}${fmtDate(it.at)}</div>
-        <div class="btns">${audBtn}${noteBtn}</div></div></article>`;
+        <div class="btns"><button class="btn ghost sm" data-act="tbl-full" data-id="${it.id}">${ic('expand', 14)} عرض كامل</button><button class="btn ghost sm" data-act="tbl-pdf" data-id="${it.id}">${ic('download', 14)} PDF</button>${audBtn}${noteBtn}</div></div></article>`;
   }
   if (it.type === 'mindmap') {
     const acts2 = ed ? `<span class="acts"><button data-act="edit-item" data-id="${it.id}" title="تعديل" aria-label="تعديل">${ic('edit', 16)}</button><button class="del" data-act="del-item" data-id="${it.id}" title="حذف" aria-label="حذف">${ic('trash', 16)}</button></span>` : '';
@@ -1523,6 +1535,50 @@ function mmFull(it) {
     <div class="mm-scroll" data-lenis-prevent>${mindmapHTML(parseMM(it.text))}</div>`;
   box.addEventListener('click', ev => { if (ev.target.closest('[data-mmclose]')) box.remove(); });
   document.body.appendChild(box);
+}
+
+/* ================= table items: full view & PDF ================= */
+const tableHTML = d => `<table class="info-table"><thead><tr>${d.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${d.rows.map(row => `<tr>${d.cols.map((_, i) => `<td>${esc(row[i] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+function tableFull(it) {
+  const box = document.createElement('div'); box.className = 'mm-full tbl-full'; box.dir = 'rtl';
+  box.innerHTML = `<div class="mm-full-head"><span style="color:var(--accent)">${ic('table', 22)}</span><h2>${esc(it.title || 'جدول')}</h2>
+      <button class="btn sm" data-tblpdf>${ic('download', 15)} تصدير PDF</button><button class="icon-btn" data-tblclose aria-label="إغلاق">${ic('x', 20)}</button></div>
+    <div class="tbl-body" data-lenis-prevent><div class="table-wrap" style="display:inline-block;max-width:100%">${tableHTML(parseTable(it.text))}</div></div>`;
+  box.addEventListener('click', ev => { if (ev.target.closest('[data-tblclose]')) box.remove(); else if (ev.target.closest('[data-tblpdf]')) tablePdf(it); });
+  document.body.appendChild(box);
+}
+/* The table is drawn as an image (so Arabic is shaped correctly) and placed on A4 pages, breaking only between rows. */
+async function tablePdf(it) {
+  toast('جارٍ تجهيز ملف PDF…');
+  let box;
+  try {
+    await loadScript(LIB.h2c); await loadScript(LIB.pdfLib);
+    const d = parseTable(it.text), sc = getSchool(S.school);
+    box = document.createElement('div'); box.className = 'pdf-sheet'; box.dir = 'rtl';
+    box.innerHTML = `<h1>${esc(it.title || 'جدول')}</h1><p>${esc(sc ? sc.name + ' — ' + sc.code : '')} · ${esc(fmtDate(Date.now()))}</p>${tableHTML(d)}`;
+    document.body.appendChild(box);
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const K = 2, top = box.getBoundingClientRect().top;
+    const cuts = [...box.querySelectorAll('tr')].map(tr => Math.round((tr.getBoundingClientRect().bottom - top) * K));
+    const canvas = await window.html2canvas(box, { scale: K, backgroundColor: '#ffffff', logging: false });
+    const W = canvas.width, H = canvas.height;
+    const page = W > H ? [842, 595] : [595, 842], m = 24, pw = page[0] - 2 * m, ph = page[1] - 2 * m;
+    const f = Math.min(1, pw / W) || 1, sliceMax = Math.floor(ph / f);
+    const pdf = await window.PDFLib.PDFDocument.create();
+    for (let y = 0; y < H;) {
+      let end = Math.min(H, y + sliceMax);
+      if (end < H) { const c = cuts.filter(v => v > y && v <= end).pop(); if (c) end = c; }
+      const part = document.createElement('canvas'); part.width = W; part.height = end - y;
+      part.getContext('2d').drawImage(canvas, 0, y, W, end - y, 0, 0, W, end - y);
+      const png = await pdf.embedPng(await new Promise(res => part.toBlob(b => b.arrayBuffer().then(res), 'image/png')));
+      const pg = pdf.addPage(page), h = (end - y) * f;
+      pg.drawImage(png, { x: page[0] - m - W * f, y: page[1] - m - h, width: W * f, height: h });
+      y = end;
+    }
+    saveBlob(new Blob([await pdf.save()], { type: 'application/pdf' }), `${(it.title || 'جدول').replace(/[\\/:*?"<>|]/g, '-')}${sc ? ' - ' + sc.name.replace(/[\\/:*?"<>|]/g, '-') : ''}.pdf`);
+    toast('تم تجهيز ملف PDF');
+  } catch (e) { toast(e && e.message === 'LIB' ? 'تعذر تحميل أدوات PDF. تحقق من الاتصال.' : 'تعذر تجهيز ملف PDF.'); }
+  finally { if (box) box.remove(); }
 }
 
 /* ================= notes ================= */
@@ -1741,7 +1797,8 @@ const CDN = ['https:', '', 'cdnjs.cloudflare.com', 'ajax', 'libs', ''].join('/')
 const LIB = {
   pdf: CDN + 'pdf.js/3.11.174/pdf.min.js',
   pdfWorker: CDN + 'pdf.js/3.11.174/pdf.' + ['wor', 'ker'].join('') + '.min.js',
-  pdfLib: CDN + 'pdf-lib/1.17.1/pdf-lib.min.js'
+  pdfLib: CDN + 'pdf-lib/1.17.1/pdf-lib.min.js',
+  h2c: CDN + 'html2canvas/1.4.1/html2canvas.min.js'
 };
 const libLoads = {};
 function loadScript(u) {
@@ -2367,6 +2424,13 @@ function guessIcon(name) {
 }
 
 /* ---------- users tab ---------- */
+function allowedTop(u) {
+  const H = new Set(u.hidden || []), out = [];
+  const clean = n => !H.has(n.id) && (n.children || []).every(clean);
+  const walk = (nodes, trail) => nodes.forEach(n => { if (H.has(n.id)) return; const t = [...trail, n.name]; if (clean(n)) out.push(t.join(' › ')); else walk(n.children || [], t); });
+  walk(S.config.roots, []);
+  return out;
+}
 function excludedTop(u) {
   const H = new Set(u.hidden || []), out = [];
   const walk = (nodes, trail) => nodes.forEach(n => { const t = [...trail, n.name]; if (H.has(n.id)) out.push(t.join(' › ')); else walk(n.children || [], t); });
@@ -2385,7 +2449,8 @@ function tabUsers() {
       ${u.role === 'viewer' ? `<button class="btn sm" data-act="excl" data-id="${u.id}">${ic('shield', 15)} استثناء</button>` : ''}
       <button class="btn sm" data-act="resetpin" data-id="${u.id}">${ic('key', 15)} تغيير الرقم</button>
       <button class="btn danger sm" data-act="deluser" data-id="${u.id}" aria-label="حذف المستخدم" ${u.id === S.me.id || (u.role === 'admin' && admins < 2) ? 'disabled' : ''}>${ic('trash', 15)}</button>
-      ${ex ? `<div class="ex-sum">${ex.length ? `<span>الأقسام المستثناة:</span>${ex.map(x => `<span class="xs">${esc(x)}</span>`).join('')}` : '<span>لا توجد أقسام مستثناة، يطّلع على كل الأقسام.</span>'}</div>` : ''}</div>`;
+      ${ex ? `<div class="ex-sum">${(() => { const al = allowedTop(u); return al.length ? `<span>يطّلع على:</span>${al.map(x => `<span class="ok">${esc(x)}</span>`).join('')}` : '<span>لا يطّلع على أي قسم.</span>'; })()}</div>
+        <div class="ex-sum">${ex.length ? `<span>الأقسام المستثناة:</span>${ex.map(x => `<span class="xs">${esc(x)}</span>`).join('')}` : '<span>لا توجد أقسام مستثناة، يطّلع على كل الأقسام.</span>'}</div>` : ''}</div>`;
     }).join('')}</div></section>
     <section class="card"><h3>إضافة مستخدم</h3>
       <form id="addUser" class="row-flex" autocomplete="off">
@@ -2490,6 +2555,8 @@ document.addEventListener('click', async e => {
     case 'mm-add': S.mm.b.push({ t: '', c: [] }); mmRerender(String(S.mm.b.length - 1)); break;
     case 'mm-addsub': { const { list, i } = mmAt(el.dataset.p); list[i].c.push({ t: '', c: [] }); mmRerender(el.dataset.p + '.' + (list[i].c.length - 1)); break; }
     case 'mm-del': { const { list, i } = mmAt(el.dataset.p); list.splice(i, 1); mmRerender(); break; }
+    case 'tbl-full': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) tableFull(it); break; }
+    case 'tbl-pdf': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) tablePdf(it); break; }
     case 'mm-full': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) mmFull(it); break; }
     case 'school': focusSchool(el.dataset.code); break;
     case 'unfocus': closeFocus(); break;
