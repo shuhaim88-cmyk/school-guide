@@ -32,7 +32,7 @@ const ST = { active: 'مفعّل', disabled: 'موقوف' };
 const AUD = { all: 'جميع المدارس', list: 'مدارس محددة' };
 // أعمدة جدول الملاحظات (تبدأ من 0)
 const N = { id: 0, code: 1, sname: 2, leaf: 3, path: 4, item: 5, ititle: 6, text: 7, by: 8, byId: 9, role: 10, at: 11, readBy: 12 };
-const TEXT_TYPES = { text: true, mindmap: true };
+const TEXT_TYPES = { text: true, mindmap: true, table: true };
 // أعمدة جدول المعلومات (تبدأ من 0)
 const I = { code: 0, sname: 1, leaf: 2, path: 3, id: 4, type: 5, title: 6, text: 7, fname: 8, fid: 9, furl: 10, size: 11, mime: 12, by: 13, at: 14, aud: 15, tgt: 16 };
 
@@ -362,6 +362,7 @@ function newInfoRow_(u, code, leaf, item) {
   r[I.id] = item.id; r[I.type] = item.type; r[I.title] = item.title || ''; r[I.text] = item.text || '';
   r[I.fname] = item.name || ''; r[I.fid] = item.fileId || ''; r[I.furl] = item.url || ''; r[I.size] = item.size || '';
   r[I.mime] = item.mime || ''; r[I.by] = u.name; r[I.at] = new Date();
+  if (item.share) { r[I.aud] = AUD.list; r[I.tgt] = String(code); }
   return r;
 }
 function leafResult_(u, code, leaf) {
@@ -440,7 +441,7 @@ function apiAddNote(token, code, leaf, itemId, text) {
     const row = findInfoRow_(itemId); if (!row) throw new Error('NOT_FOUND');
     const ir = sheet_('info').getRange(row, 1, 1, HEAD.info.length).getValues()[0];
     if (u.role === 'school' && !visibleToSchool_(ir, u.school)) throw new Error('FORBIDDEN');
-    const label = String(ir[I.title] || ir[I.fname] || '') || ({ text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية' }[String(ir[I.type])] || 'معلومة');
+    const label = String(ir[I.title] || ir[I.fname] || '') || ({ text: 'نص', image: 'صورة', file: 'مستند', mindmap: 'خريطة ذهنية', table: 'جدول' }[String(ir[I.type])] || 'معلومة');
     const out = new Array(HEAD.notes.length).fill('');
     out[N.id] = newId_(); out[N.code] = String(code); out[N.sname] = String(ir[I.sname] || schoolName_(code)); out[N.leaf] = String(leaf);
     out[N.path] = String(ir[I.path] || ''); out[N.item] = String(itemId); out[N.ititle] = label; out[N.text] = text;
@@ -524,19 +525,54 @@ function apiDeleteItem(token, code, leaf, itemId) {
     return leafResult_(u, code, leaf);
   });
 }
-function apiUpload(token, code, leaf, file) {
+// opts (اختياري، للإدخال الجماعي): { title, share: إظهارها في حساب المدرسة, bulk: لا تُعِد قائمة القسم }
+function apiUpload(token, code, leaf, file, opts) {
   const u = auth_(token, 'edit');
+  opts = opts || {};
+  if (opts.bulk && !schoolName_(code)) throw new Error('NOT_FOUND');
   const bytes = Utilities.base64Decode(file.data);
   if (bytes.length > MAX_FILE_MB * 1048576) throw new Error('TOO_LARGE');
   const sname = schoolName_(code);
   const folder = childFolder_(childFolder_(rootFolder_(), 'المرفقات'), (String(code) + ' - ' + sname).trim());
   const f = folder.createFile(Utilities.newBlob(bytes, file.mime || 'application/octet-stream', file.name || 'ملف'));
-  const item = { id: newId_(), type: /^image\//.test(file.mime) ? 'image' : 'file', title: '', name: f.getName(), fileId: f.getId(), url: f.getUrl(), size: bytes.length, mime: file.mime };
+  const item = { id: newId_(), type: /^image\//.test(file.mime) ? 'image' : 'file', title: String(opts.title || '').slice(0, 200), name: f.getName(), fileId: f.getId(), url: f.getUrl(), size: bytes.length, mime: file.mime, share: !!opts.share };
   return withLock_(() => {
     sheet_('info').appendRow(newInfoRow_(u, code, leaf, item));
-    return leafResult_(u, code, leaf);
+    return opts.bulk ? { ver: bump_() } : leafResult_(u, code, leaf);
   });
 }
+/* ---------- الإدخال الجماعي ----------
+ * items: [{ code, type: 'text' | 'table', title, text }] — كل عنصر يُضاف لمدرسته في القسم نفسه.
+ * share: تُشارك كل معلومة مع حساب مدرستها فقط. */
+function apiBulkAdd(token, leaf, items, share) {
+  const u = auth_(token, 'edit');
+  const path = pathTo_(readSections_(), String(leaf));
+  if (!path) throw new Error('NOT_FOUND');
+  const pathName = path.map(n => n.name).join(' › ');
+  const names = {}; schoolRows_().forEach(x => { names[x.code] = x.name; });
+  const rows = [], skipped = [];
+  (items || []).forEach(it => {
+    const c = String(it.code || '').trim(), text = String(it.text || '');
+    if (!names[c] || !text.trim() || text.length > MAX_TEXT) { skipped.push(c); return; }
+    const r = new Array(HEAD.info.length).fill('');
+    r[I.code] = c; r[I.sname] = names[c]; r[I.leaf] = String(leaf); r[I.path] = pathName; r[I.id] = newId_();
+    r[I.type] = it.type === 'table' ? 'table' : 'text'; r[I.title] = String(it.title || '').slice(0, 200); r[I.text] = text;
+    r[I.by] = u.name; r[I.at] = new Date();
+    if (share) { r[I.aud] = AUD.list; r[I.tgt] = c; }
+    rows.push(r);
+  });
+  return withLock_(() => {
+    if (rows.length) {
+      const sh = sheet_('info'), start = sh.getLastRow() + 1;
+      sh.getRange(start, I.code + 1, rows.length, 1).setNumberFormat('@');
+      sh.getRange(start, I.title + 1, rows.length, 2).setNumberFormat('@');   // نص كما هو، حتى لو بدأ بعلامة =
+      sh.getRange(start, I.tgt + 1, rows.length, 1).setNumberFormat('@');
+      sh.getRange(start, 1, rows.length, HEAD.info.length).setValues(rows);
+    }
+    return { added: rows.length, skipped, ver: bump_() };
+  });
+}
+
 function apiGetFile(token, fileId) {
   const u = auth_(token);
   const row = rows_('info').find(r => String(r[I.fid]) === String(fileId));
