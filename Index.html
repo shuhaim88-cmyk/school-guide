@@ -1738,10 +1738,12 @@ function xMapCard() {
 }
 
 /* ---- images & documents: find each file's school from its name, then (documents) from its content ---- */
+// Library addresses are assembled from parts: Google Apps Script cuts some full script URLs out of the page source.
+const CDN = ['https:', '', 'cdnjs.cloudflare.com', 'ajax', 'libs', ''].join('/');
 const LIB = {
-  pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-  pdfLib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'
+  pdf: CDN + 'pdf.js/3.11.174/pdf.min.js',
+  pdfWorker: CDN + 'pdf.js/3.11.174/pdf.' + ['wor', 'ker'].join('') + '.min.js',
+  pdfLib: CDN + 'pdf-lib/1.17.1/pdf-lib.min.js'
 };
 const libLoads = {};
 function loadScript(u) {
