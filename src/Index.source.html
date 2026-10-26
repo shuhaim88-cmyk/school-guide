@@ -2408,9 +2408,12 @@ async function resetInfo() {
     try {
       const r = await api('apiResetInfo', S.token, v);
       closeDialog(); S.info = {}; S.ver = r.ver;
-      toast(r.deleted ? `تم حذف جميع المعلومات (${r.deleted})` : 'لا توجد معلومات للحذف');
+      toast((r.deleted ? `تم حذف جميع المعلومات (${r.deleted})` : 'لا توجد معلومات للحذف') + (r.filesOk === false ? '، وتعذّر نقل مجلد المرفقات إلى سلة المهملات، احذفه يدوياً من Drive' : ''));
       refresh();
-    } catch (e) { busy = false; m.textContent = MSG[errCode(e)] || MSG.ERR; }
+    } catch (e) {
+      busy = false; const c = errCode(e), raw = String((e && e.message) || e || '');
+      m.textContent = /apiResetInfo/.test(raw) ? 'ملف Code.gs في Apps Script لم يُحدَّث بعد. استبدله بالنسخة الجديدة ثم انشر إصداراً جديداً.' : c === 'ERR' ? 'تعذّر الحذف: ' + raw : (MSG[c] || MSG.ERR);
+    }
   };
   openDialog('تأكيد نهائي', `<form><p style="margin:0 0 10px">للتأكيد اكتب كلمة <b>حذف</b> في الحقل ثم اضغط «حذف نهائي».</p>
     <input class="input" id="resetWord" autocomplete="off" aria-label="اكتب حذف للتأكيد"><p id="resetMsg" role="alert" style="margin:8px 0 0;color:var(--danger);font-size:13px;min-height:1em"></p></form>`,

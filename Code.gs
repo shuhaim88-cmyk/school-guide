@@ -634,10 +634,13 @@ function apiResetInfo(token, word) {
   return withLock_(() => {
     const sh = sheet_('info'); const n = sh.getLastRow();
     if (n > 1) sh.getRange(2, 1, n - 1, sh.getMaxColumns()).clearContent();
-    const it = rootFolder_().getFoldersByName('المرفقات');
-    const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
-    while (it.hasNext()) { try { const f = it.next(); if (!f.isTrashed()) { f.setName('المرفقات (محذوفة ' + stamp + ')'); f.setTrashed(true); } } catch (e) {} }
-    return { deleted: Math.max(0, n - 1), ver: bump_() };
+    let filesOk = true;
+    try {
+      const it = rootFolder_().getFoldersByName('المرفقات');
+      const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+      while (it.hasNext()) { const f = it.next(); if (!f.isTrashed()) { f.setName('المرفقات (محذوفة ' + stamp + ')'); f.setTrashed(true); } }
+    } catch (e) { filesOk = false; }
+    return { deleted: Math.max(0, n - 1), filesOk, ver: bump_() };
   });
 }
 
