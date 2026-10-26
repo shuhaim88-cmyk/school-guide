@@ -98,6 +98,7 @@ a.btn{text-decoration:none;color:inherit}
 @keyframes star-border{to{--star-angle:360deg}}
 .btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,var(--line))}
 .btn.danger:hover{background:var(--danger-soft)}
+.danger-zone{border-color:color-mix(in srgb,var(--danger) 35%,var(--line));margin-top:16px}
 .btn.ghost{background:transparent;border-color:transparent}
 .btn.ghost:hover{background:var(--surface-2);border-color:var(--line)}
 .btn.sm{padding:6px 10px;font-size:13px;border-radius:10px}
@@ -702,9 +703,10 @@ const MSG = {
   WEAK_PASSWORD: 'كلمة المرور يجب أن تكون 6 أحرف أو أرقام على الأقل، ومختلفة عن رقم المدرسة.',
   MUST_CHANGE: 'يجب تعيين كلمة مرور جديدة أولاً.',
   NO_SCHOOLS: 'اختر مدرسة واحدة على الأقل.',
+  CONFIRM_WORD: 'اكتب كلمة «حذف» للتأكيد.',
   ERR: 'تعذر الاتصال بـ Google Drive. تحقق من الاتصال ثم أعد المحاولة.'
 };
-function errCode(e) { const m = String((e && e.message) || e || ''); return ['AUTH', 'FORBIDDEN', 'PIN_TAKEN', 'BAD_PIN', 'WRONG_PIN', 'TOO_LARGE', 'TEXT_TOO_LONG', 'NOT_FOUND', 'SETUP_DONE', 'NO_SERVER', 'WRONG_PASSWORD', 'LOCKED', 'DISABLED', 'WEAK_PASSWORD', 'MUST_CHANGE', 'NO_SCHOOLS'].find(k => m.includes(k)) || 'ERR'; }
+function errCode(e) { const m = String((e && e.message) || e || ''); return ['AUTH', 'FORBIDDEN', 'PIN_TAKEN', 'BAD_PIN', 'WRONG_PIN', 'TOO_LARGE', 'TEXT_TOO_LONG', 'NOT_FOUND', 'SETUP_DONE', 'NO_SERVER', 'WRONG_PASSWORD', 'LOCKED', 'DISABLED', 'WEAK_PASSWORD', 'MUST_CHANGE', 'NO_SCHOOLS', 'CONFIRM_WORD'].find(k => m.includes(k)) || 'ERR'; }
 function reportErr(e) {
   if (e && e.handled) return;
   const c = errCode(e);
@@ -2390,7 +2392,30 @@ function tabSections() {
       <div class="swatches"><span>اللون</span>${TONES.map(t => `<button class="sw ${r.tone === t ? 'on' : ''}" data-act="tone" data-p="${r.id}" data-v="${t}" style="--sw:var(--${t})" aria-label="لون"></button>`).join('')}<span style="margin-inline-start:auto">${countNodes(r.children || [])} قسم فرعي</span></div>
       <div class="tree">${tree(r.children || [], [r.id], r.tone) || '<p class="d" style="margin:0;color:var(--muted)">لا توجد أقسام فرعية. هذا القسم الرئيسي سيعرض المعلومات مباشرة حتى تضيف له أقساماً فرعية.</p>'}</div>
       <form class="row-flex" data-root="${r.id}" data-form="addroot"><div class="field"><input class="input" placeholder="اسم قسم فرعي جديد، مثال: ${r.id === 'buildings' ? 'استمارة الحصر' : r.id === 'hr' ? 'الهيئة التدريسية' : 'قسم فرعي'}" aria-label="اسم قسم فرعي جديد" maxlength="60" required></div><button class="btn primary">${ic('plus', 18)} إضافة</button></form>
-    </section>`).join('')}</div>`;
+    </section>`).join('')}</div>
+    ${can('admin') ? `<section class="card danger-zone"><h3>إعادة تعيين المعلومات</h3>
+      <p class="d">يحذف جميع المعلومات من كل الأقسام في كل المدارس مرة واحدة، وتُنقل المرفقات إلى سلة المهملات في Google Drive. تبقى المدارس والأقسام والمستخدمون كما هي.</p>
+      <div><button class="btn danger sm" data-act="reset-info">${ic('trash', 16)} حذف جميع المعلومات</button></div></section>` : ''}`;
+}
+async function resetInfo() {
+  if (!(await confirmBox('هل أنت متأكد من حذف جميع المعلومات من كل الأقسام في كل المدارس؟ لا يمكن التراجع عن ذلك من التطبيق.', 'متابعة'))) return;
+  let busy = false;
+  const go = async () => {
+    if (busy) return;
+    const v = ($('#resetWord').value || '').trim(), m = $('#resetMsg');
+    if (v !== 'حذف') { m.textContent = MSG.CONFIRM_WORD; $('#resetWord').focus(); return; }
+    busy = true; m.textContent = 'جارٍ الحذف…';
+    try {
+      const r = await api('apiResetInfo', S.token, v);
+      closeDialog(); S.info = {}; S.ver = r.ver;
+      toast(r.deleted ? `تم حذف جميع المعلومات (${r.deleted})` : 'لا توجد معلومات للحذف');
+      refresh();
+    } catch (e) { busy = false; m.textContent = MSG[errCode(e)] || MSG.ERR; }
+  };
+  openDialog('تأكيد نهائي', `<form><p style="margin:0 0 10px">للتأكيد اكتب كلمة <b>حذف</b> في الحقل ثم اضغط «حذف نهائي».</p>
+    <input class="input" id="resetWord" autocomplete="off" aria-label="اكتب حذف للتأكيد"><p id="resetMsg" role="alert" style="margin:8px 0 0;color:var(--danger);font-size:13px;min-height:1em"></p></form>`,
+    [{ label: 'إلغاء', fn: closeDialog }, { label: 'حذف نهائي', cls: 'danger', fn: go }]);
+  const f = $('#dialogs form'); if (f) f.addEventListener('submit', e => { e.preventDefault(); go(); });
 }
 const countNodes = ns => ns.reduce((a, n) => a + 1 + countNodes(n.children || []), 0);
 let cfgQ = Promise.resolve();
@@ -2641,6 +2666,7 @@ document.addEventListener('click', async e => {
     case 'cancel-import': S.importRows = null; renderPanel(); break;
     case 'do-import': doImport(); break;
     case 'template': downloadTemplate(); break;
+    case 'reset-info': if (can('admin')) resetInfo(); break;
     case 'clear-schools': if (await confirmBox('حذف كل المدارس من القائمة؟ تبقى المعلومات المرتبطة بها محفوظة وتعود عند استيراد نفس الرموز.', 'حذف الكل')) saveSchools([]).then(() => { toast('تم حذف القائمة'); renderPanel(); }).catch(() => {}); break;
     case 'editschool': editSchoolDialog(); break;
     case 'pickicon': e.stopPropagation(); iconPicker(el); break;

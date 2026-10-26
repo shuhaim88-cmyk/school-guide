@@ -56,7 +56,8 @@ function rootFolder_() {
 }
 function childFolder_(parent, name) {
   const it = parent.getFoldersByName(name);
-  return it.hasNext() ? it.next() : parent.createFolder(name);
+  while (it.hasNext()) { const f = it.next(); if (!f.isTrashed()) return f; }
+  return parent.createFolder(name);
 }
 function ss_() {
   if (SS_) return SS_;
@@ -623,6 +624,21 @@ function apiSaveSchools(token, list) {
 function apiSaveConfig(token, roots) {
   auth_(token, 'admin');
   return withLock_(() => { writeSections_(ss_(), roots || []); return { ver: bump_() }; });
+}
+
+// يحذف كل المعلومات من كل الأقسام لكل المدارس (للمدير فقط، ويشترط كتابة كلمة «حذف»).
+// تُنقل المرفقات إلى سلة المهملات في Drive (قابلة للاسترجاع 30 يوماً). تبقى المدارس والأقسام والمستخدمون والملاحظات.
+function apiResetInfo(token, word) {
+  auth_(token, 'admin');
+  if (String(word || '').trim() !== 'حذف') throw new Error('CONFIRM_WORD');
+  return withLock_(() => {
+    const sh = sheet_('info'); const n = sh.getLastRow();
+    if (n > 1) sh.getRange(2, 1, n - 1, sh.getMaxColumns()).clearContent();
+    const it = rootFolder_().getFoldersByName('المرفقات');
+    const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+    while (it.hasNext()) { try { const f = it.next(); if (!f.isTrashed()) { f.setName('المرفقات (محذوفة ' + stamp + ')'); f.setTrashed(true); } } catch (e) {} }
+    return { deleted: Math.max(0, n - 1), ver: bump_() };
+  });
 }
 
 function apiAddUser(token, name, pin, role) {
