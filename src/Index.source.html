@@ -164,6 +164,16 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:12px}
 .tile{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;border:1px solid transparent;background:transparent;border-radius:18px;padding:14px 8px 12px;transition:background .2s,border-color .2s,transform .2s}
 .tile:hover{background:var(--surface);border-color:var(--line);transform:translateY(-2px)}
+.tile{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.t-flag{position:absolute;z-index:1;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 3px var(--bg);top:-4px}
+.t-flag.memo{inset-inline-start:-6px;background:var(--hr);color:var(--on-tone)}
+.t-flag.bell{inset-inline-end:-6px;background:var(--danger);color:#fff;animation:ring 1.6s ease-in-out infinite}
+.tile.due .badge{background:var(--danger-soft);color:var(--danger);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--danger) 45%,transparent),0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent);animation:duePulse 1.8s ease-out infinite}
+.tile.due .badge::after{border-color:color-mix(in srgb,var(--danger) 55%,transparent)}
+.tile.due .t-name{color:var(--danger)}
+@keyframes duePulse{0%{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--danger) 45%,transparent),0 0 0 0 color-mix(in srgb,var(--danger) 40%,transparent)}100%{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--danger) 45%,transparent),0 0 0 14px transparent}}
+@keyframes ring{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}}
+@media (prefers-reduced-motion:reduce){.t-flag.bell,.tile.due .badge{animation:none}}
 .badge{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;background:var(--tone-soft);color:var(--tone);position:relative;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tone) 22%,transparent)}
 .badge::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--tone) 35%,transparent);transition:transform .6s}
 .tile:hover .badge::after{transform:rotate(60deg)}
@@ -208,6 +218,7 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .orbit-item:hover .bubble,.orbit-item:focus-visible .bubble{transform:scale(1.08)}
 .orbit-item.active .bubble{box-shadow:0 0 0 4px var(--bg),0 0 0 7px var(--tone)}
 .o-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);width:calc(var(--s) * 1.9);font-size:var(--lf);font-weight:600;line-height:1.3;text-align:center;color:var(--ink);text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.orbit-item.alert .bubble{box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--danger)}
 .o-count{position:absolute;top:-2px;inset-inline-start:-2px;min-width:24px;height:24px;border-radius:12px;padding:0 7px;display:grid;place-items:center;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;box-shadow:0 0 0 3px var(--bg)}
 .o-kind{position:absolute;bottom:-2px;inset-inline-end:-2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--tone);box-shadow:0 0 0 2px var(--bg),inset 0 0 0 1.5px var(--tone)}
 .orbit-hint{position:absolute;left:50%;top:calc(50% + var(--c)/2 + 26px);transform:translateX(-50%);width:min(320px,90%);text-align:center;color:var(--muted);font-size:13px}
@@ -377,6 +388,69 @@ tr:last-child td{border-bottom:0}
 .tbl-full .tbl-body{flex:1;overflow:auto;padding:20px max(16px,env(safe-area-inset-left,0px))}
 .tbl-full .info-table td,.tbl-full .info-table th{font-size:14px;padding:9px 12px}
 .tbl-full .info-table th{min-width:80px}
+/* ---------- school notes & reminders ---------- */
+.mm-full.desk-full{z-index:66}
+.desk-sub{font-size:13px;font-weight:400;color:var(--muted);margin-inline-start:6px}
+.desk-body{flex:1;overflow:auto;padding:18px max(16px,env(safe-area-inset-left,0px)) 40px}
+.desk-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.desk-hint{color:var(--muted);font-size:13px;margin:0 0 10px}
+.desk-msg{margin:0;color:var(--danger);font-size:13px;min-height:1em}
+.memo{--mc:var(--surface);display:block;width:100%;text-align:start;break-inside:avoid;margin:0 0 14px;background:var(--mc);border:1px solid color-mix(in srgb,var(--ink) 12%,var(--mc));border-radius:14px;padding:14px 14px 10px;position:relative;transition:box-shadow .2s,transform .2s;color:var(--ink)}
+.memo:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.memo-grid{columns:230px;column-gap:14px}
+.memo-t{display:block;font-size:16.5px;font-weight:700;line-height:1.45;margin-bottom:6px}
+.memo-b{display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;font-size:14px;line-height:1.65;color:color-mix(in srgb,var(--ink) 85%,transparent)}
+.memo-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11.5px;color:var(--muted)}
+.memo-meta .lk{display:inline-flex;gap:3px;align-items:center}
+.memo-ed{margin-inline-start:auto;color:var(--accent)}
+.memo.unread{box-shadow:0 0 0 2px var(--hr)}
+.memo-new{position:absolute;top:-9px;inset-inline-end:12px;background:var(--hr);color:var(--on-tone);font-size:11px;font-weight:600;border-radius:999px;padding:1px 9px}
+.c-yellow{--mc:color-mix(in srgb,#F5D547 34%,var(--surface))}.c-green{--mc:color-mix(in srgb,#7FCB8A 32%,var(--surface))}.c-blue{--mc:color-mix(in srgb,#7FB4E8 32%,var(--surface))}
+.c-pink{--mc:color-mix(in srgb,#F19CBB 32%,var(--surface))}.c-purple{--mc:color-mix(in srgb,#B79AE6 32%,var(--surface))}.c-orange{--mc:color-mix(in srgb,#F4A261 34%,var(--surface))}.c-none{--mc:var(--surface)}
+.memo-dlg{width:min(560px,calc(100% - 32px))}
+.memo-form{background:var(--mc);border:1px solid color-mix(in srgb,var(--ink) 12%,var(--mc));border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:4px;transition:background .2s}
+.mf-title,.mf-body{border:0;background:transparent;color:var(--ink);font:inherit;outline:none;width:100%;resize:none}
+.mf-title{font-size:18px;font-weight:700;padding:6px 0}
+.mf-body{font-size:15px;line-height:1.7;min-height:150px;padding:4px 0}
+.mf-title::placeholder,.mf-body::placeholder{color:var(--muted)}
+.mf-colors{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--ink) 15%,transparent)}
+.mf-dot{width:26px;height:26px;border-radius:50%;background:var(--mc);border:1.5px solid color-mix(in srgb,var(--ink) 25%,transparent);padding:0}
+.mf-dot.c-none{background:var(--surface) linear-gradient(135deg,transparent 46%,var(--muted) 47%,var(--muted) 53%,transparent 54%)}
+.mf-dot.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+.vis-seg{align-self:flex-start;flex-wrap:wrap}.vis-seg button{display:inline-flex;gap:6px;align-items:center}
+.paper-dlg{width:min(600px,calc(100% - 32px))}
+.paper-dlg h3{font-size:13px;color:var(--muted);font-weight:500}
+.paper-school{display:inline-flex;gap:6px;align-items:center}
+.paper{--line-h:30px;background-color:var(--mc);background-image:linear-gradient(to left,transparent 34px,color-mix(in srgb,var(--danger) 45%,transparent) 34px,color-mix(in srgb,var(--danger) 45%,transparent) 35.5px,transparent 35.5px),repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--line-h) - 1px),color-mix(in srgb,var(--bld) 22%,transparent) calc(var(--line-h) - 1px),color-mix(in srgb,var(--bld) 22%,transparent) var(--line-h));background-position:0 0,0 14px;border-radius:6px 6px 16px 6px;padding:14px 48px 18px 20px;box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 10%,transparent),0 10px 24px -14px color-mix(in srgb,var(--ink) 50%,transparent);min-height:260px}
+.paper-t{font-size:20px;font-weight:700;line-height:var(--line-h);margin:0 0 var(--line-h);padding-top:2px}
+.paper-b{white-space:pre-wrap;font-size:15.5px;line-height:var(--line-h);overflow-wrap:anywhere}
+.paper-meta{margin-top:14px;font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.rem-h{font-size:14px;margin:18px 0 10px;display:flex;gap:8px;align-items:center}.rem-h:first-of-type{margin-top:4px}
+.rem-h .cnt{font-size:12px;color:var(--muted);font-weight:500}
+.rem-list{display:flex;flex-direction:column;gap:8px;max-width:820px}
+.rem-row{display:flex;gap:12px;align-items:flex-start;text-align:start;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--ink)}
+.rem-row:hover{border-color:color-mix(in srgb,var(--t3) 45%,var(--line))}
+.rem-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--t3-soft);color:var(--t3)}
+.rem-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rem-b{font-size:13px;color:color-mix(in srgb,var(--ink) 80%,transparent);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rem-meta{font-size:12px;color:var(--muted);display:inline-flex;gap:3px;align-items:center;flex-wrap:wrap}
+.rem-st{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--surface-2);color:var(--muted);white-space:nowrap;flex:none}
+.s-due .rem-ic{background:var(--danger-soft);color:var(--danger)}.s-due .rem-st{background:var(--danger-soft);color:var(--danger)}.rem-row.s-due{border-color:color-mix(in srgb,var(--danger) 40%,var(--line))}
+.s-up .rem-st{background:var(--t3-soft);color:var(--t3)}
+.s-read .rem-ic,.s-past .rem-ic{background:var(--accent-soft);color:var(--accent)}.s-read .rem-st{background:var(--accent-soft);color:var(--accent)}
+.rem-card{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.rem-card h2{font-size:19px}
+.rem-when{display:inline-flex;gap:6px;align-items:center;font-size:14px;color:var(--t3);font-weight:500}
+.rem-body{margin:0;white-space:pre-wrap;line-height:1.7}
+#remPops{position:fixed;z-index:80;inset-inline-start:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100% - 32px))}
+.rem-pop{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));border-inline-start:4px solid var(--danger);border-radius:14px;padding:12px;box-shadow:var(--shadow);animation:popIn .35s cubic-bezier(.2,.9,.3,1.3) both}
+.rp-ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--danger-soft);color:var(--danger);flex:none;animation:ring 1.6s ease-in-out infinite}
+.rp-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rp-main b{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rp-k{font-size:11.5px;color:var(--danger);font-weight:600}.rp-s{font-size:12px;color:var(--muted)}
+.rp-acts{display:flex;gap:4px;align-items:center}
+@keyframes popIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.rp-ic,.rem-pop{animation:none}}
 .pdf-sheet{position:fixed;left:-20000px;top:0;width:max-content;max-width:3000px;min-width:720px;background:#fff;color:#111;padding:36px 40px;font-family:var(--f-body)}
 .pdf-sheet h1{font-family:var(--f-display);font-size:24px;margin:0 0 4px;color:#0d4f45}
 .pdf-sheet p{margin:0 0 18px;color:#555;font-size:14px}
@@ -600,6 +674,9 @@ const P = {
   note:'<path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H10l-4.5 4v-4H6a2 2 0 01-2-2z"/><path d="M8.5 8h7M8.5 11.5h5"/>',
   mind:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18.5" r="2.5"/><circle cx="12" cy="18.5" r="2.5"/><circle cx="19" cy="18.5" r="2.5"/><path d="M12 7.5v8.5M12 11h-7v5M12 11h7v5"/>',
   stats:'<path d="M4 20h16"/><rect x="5" y="11" width="3.2" height="7" rx="1"/><rect x="10.4" y="6" width="3.2" height="12" rx="1"/><rect x="15.8" y="13" width="3.2" height="5" rx="1"/>',
+  bell:'<path d="M6 16.5V11a6 6 0 0112 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2 2 0 004 0"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
   expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'
 };
 const PICKABLE = ['clipboard','table','layers','doc','folder','chart','map','building','desk','tools','key','bolt','water','bus','shield','calendar','people','id','user','book','star','flask','laptop','ball'];
@@ -717,7 +794,7 @@ function reportErr(e) {
 function call(fn, ...args) {
   return api(fn, S.token, ...args).catch(e => { reportErr(e); const err = e instanceof Error ? e : new Error(String(e)); err.handled = true; throw err; });
 }
-function endSession() { lsSet(TOKEN_KEY, null); S.token = null; S.me = null; S.view = 'home'; route(); }
+function endSession() { $('#remPops')?.remove(); lsSet(TOKEN_KEY, null); S.token = null; S.me = null; S.view = 'home'; route(); }
 
 /* ================= boot ================= */
 async function boot() {
@@ -740,6 +817,8 @@ async function boot() {
 }
 function applyBoot(d) {
   const was = S.me;
+  if (!was || !d.me || was.id !== d.me.id) { popped.clear(); $('#remPops')?.remove(); }
+  S.desk = d.desk || null; setTimeout(deskTick, 0);
   S.me = d.me; S.config = normConfig(d.config); S.users = d.users || []; S.ver = d.ver; S.driveUrl = d.driveUrl || ''; S.unread = d.unreadNotes || 0;
   S.rawSchools = d.schools || [];
   S.schools = S.rawSchools.map(fixRow).sort((a, b) => String(a.wilayah).localeCompare(String(b.wilayah), 'ar') || String(a.name).localeCompare(String(b.name), 'ar'));
@@ -749,6 +828,7 @@ function rerenderData() {
   if (S.view === 'home') { renderChips(); renderGrid(); renderStats(); if (S.focus) focusSchool(S.focus, false); }
   else if (S.view === 'school') { if (!getSchool(S.school)) goHome(); else { trimPath(); renderSchoolView(false); if (S.sheet && !S.composing) renderSheet(); } }
   if (S.panel) renderPanelSafe();
+  renderDeskView();
 }
 async function refresh() {
   try {
@@ -925,6 +1005,7 @@ document.addEventListener('keydown', e => {
     if ($('#dialogs').children.length) return closeDialog();
     if ($('.lightbox')) return $('.lightbox').remove();
     if ($('.menu')) return $('.menu').remove();
+    if ($('.desk-full')) return closeDeskView();
     if ($('.mm-full')) return $('.mm-full').remove();
     if (S.sheet) return closeSheet();
     if (S.focus) return focusUp();
@@ -1063,8 +1144,8 @@ function renderChips() {
 }
 function tile(s) {
   const t = genderTone(s.gender);
-  return `<button class="tile" data-act="school" data-code="${esc(s.code)}" style="--tone:var(--${t});--tone-soft:var(--${t}-soft)">
-    <span class="badge">${ic('school', 32, 1.6)}</span><span class="t-name">${esc(s.name)}</span><span class="t-meta">${esc(s.code)}${s.period ? ' · ' + esc(s.period) : ''}</span></button>`;
+  return `<button class="tile ${deskOn() && remDueCount(s.code) ? 'due' : ''}" data-act="school" data-code="${esc(s.code)}" style="--tone:var(--${t});--tone-soft:var(--${t}-soft)">
+    <span class="badge">${ic('school', 32, 1.6)}${tileFlags(s.code)}</span><span class="t-name">${esc(s.name)}</span><span class="t-meta">${esc(s.code)}${s.period ? ' · ' + esc(s.period) : ''}</span></button>`;
 }
 function renderGrid(animate = true) {
   if (gridMotionContext) { gridMotionContext.revert(); gridMotionContext = null; }
@@ -1139,11 +1220,12 @@ function focusSchool(code, anim = true) {
   if (!tile) return closeFocus();
   if (String(S.focus) !== String(code)) S.focusPath = [];
   S.focus = code; S.school = code; subscribeInfo(code);
-  const fp = S.focusPath;
-  while (fp.length && (!getNode(fp) || isLeaf(getNode(fp)))) fp.pop();
-  const node = fp.length ? getNode(fp) : null;
-  const root = fp.length ? rootOf(fp[0]) : null;
-  const rs = node ? kids(node) : visRoots(), n = rs.length;
+  const fp = S.focusPath, desk = !!S.deskMode;
+  if (desk) { if (fp.length && !DESK.some(d => d.id === fp[0])) fp.length = 0; }
+  else while (fp.length && (!getNode(fp) || isLeaf(getNode(fp)))) fp.pop();
+  const node = fp.length ? (desk ? DESK.find(d => d.id === fp[0]) : getNode(fp)) : null;
+  const root = fp.length ? (desk ? node : rootOf(fp[0])) : null;
+  const rs = desk ? (node ? node.children : DESK) : node ? kids(node) : visRoots(), n = rs.length;
   const small = window.innerWidth < 560;
   const sItem = small ? 62 : 80, c = small ? 150 : 180, lab = 56;
   const R = Math.max(c / 2 + sItem / 2 + lab, n ? (n * sItem * 2) / (2 * Math.PI) : 0);
@@ -1159,18 +1241,18 @@ function focusSchool(code, anim = true) {
   const pos = rs.map((_, i) => { const a = angleAt(i, n); return { x: Math.round(Math.cos(a) * R), y: Math.round(Math.sin(a) * R) }; });
   const lines = rs.map((x, i) => { const p = pos[i]; const len = Math.round(Math.hypot(p.x, p.y)); return `<line x1="0" y1="0" x2="${p.x}" y2="${p.y}" style="--len:${len};--d:${i * 50}ms;--tone:var(--${(root || x).tone})"/>`; }).join('');
   const items = rs.map((x, i) => {
-    const p = pos[i], tone = (root || x).tone, leaf = isLeaf(x), cnt = countIn(x);
-    return `<button class="orbit-item ${leaf && fp.length ? 'leaf' : 'branch'} ${active === x.id ? 'active' : ''}" data-act="fnode" data-id="${esc(x.id)}"
+    const p = pos[i], tone = (root || x).tone, leaf = desk ? !x.children : isLeaf(x), cnt = desk ? deskCount(x, code) : countIn(x), alert = desk && deskAlert(x, code);
+    return `<button class="orbit-item ${leaf && fp.length ? 'leaf' : 'branch'} ${active === x.id ? 'active' : ''} ${alert ? 'alert' : ''}" data-act="${desk ? 'dnode' : 'fnode'}" data-id="${esc(x.id)}"
       style="--x:${p.x}px;--y:${p.y}px;--s:${sItem}px;--d:${90 + i * 50}ms;--lf:${lf}px;--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="${esc(x.name)}">
       <span class="bubble">${ic(x.icon || (root ? root.icon : 'folder'), Math.round(sItem * 0.42), 1.6)}</span>${cnt ? `<span class="o-count">${cnt.toLocaleString('ar-OM')}</span>` : ''}
-      ${leaf && fp.length ? `<span class="o-kind" title="يعرض المعلومات">${ic('doc', 12, 2)}</span>` : ''}
+      ${leaf && fp.length && !desk ? `<span class="o-kind" title="يعرض المعلومات">${ic('doc', 12, 2)}</span>` : ''}
       <span class="o-label">${esc(x.name)}</span></button>`; }).join('');
   const hint = n ? '' : `<div class="orbit-hint" style="background:var(--surface);border-radius:12px;padding:8px">${S.me && S.me.role === 'school' ? 'لا توجد معلومات متاحة حالياً.' : 'لا توجد أقسام متاحة بعد.'}</div>`;
   const center = node
     ? `${ic(node.icon || root.icon || 'folder', small ? 24 : 28, 1.6)}<span class="c-name">${esc(node.name)}</span>
        <span class="c-meta">${esc(s.name)}</span><span class="c-up">${ic('up', 11, 2)} رجوع</span>`
     : `${ic('school', small ? 24 : 28, 1.6)}<span class="c-name">${esc(s.name)}</span>
-       <span class="c-meta">${esc(s.code)}${s.period ? ' · ' + esc(s.period) : ''}</span><span class="c-up">${ic('x', 11, 2)} إغلاق</span>`;
+       <span class="c-meta">${desk ? 'ملاحظات وتذكير' : esc(s.code) + (s.period ? ' · ' + esc(s.period) : '')}</span><span class="c-up">${ic('x', 11, 2)} إغلاق</span>`;
   $('#overlay').innerHTML = `<div class="focus-scrim" data-act="unfocus"></div>
     <div class="focus-wrap" dir="rtl" style="left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) scale(${k.toFixed(3)})">
       <div class="orbit ${anim ? '' : 'still'}" style="width:${size}px;height:${size}px;--c:${c}px">
@@ -1193,7 +1275,7 @@ function fitNames(scope) {
 function closeFocus() {
   if (!S.focus) return;
   closeSheet();
-  S.focus = null; S.focusPath = []; $('#overlay').innerHTML = '';
+  S.focus = null; S.focusPath = []; S.deskMode = false; $('#overlay').innerHTML = '';
   if (S.view === 'home') { S.school = null; unsubInfo(); }
 }
 function focusNode(id) {
@@ -1208,6 +1290,276 @@ function focusUp() {
   if (!S.focusPath.length) return closeFocus();
   S.focusPath.pop(); focusSchool(S.focus, true);
 }
+/* ================= school notes & reminders (long-press / right-click a school) ================= */
+const DESK = [
+  { id: 'd-memos', name: 'ملاحظات', icon: 'note', tone: 'hr', children: [
+    { id: 'd-memo-add', name: 'إضافة', icon: 'plus' }, { id: 'd-memo-view', name: 'عرض', icon: 'eye' }, { id: 'd-memo-edit', name: 'تعديل', icon: 'edit' }] },
+  { id: 'd-rem', name: 'تذكير', icon: 'bell', tone: 't3', children: [
+    { id: 'd-rem-add', name: 'إضافة', icon: 'plus' }, { id: 'd-rem-log', name: 'السجل', icon: 'clock' }] }
+];
+const MEMO_COLORS = [['', 'بدون'], ['yellow', 'أصفر'], ['green', 'أخضر'], ['blue', 'أزرق'], ['pink', 'وردي'], ['purple', 'بنفسجي'], ['orange', 'برتقالي']];
+const deskOn = () => !!(S.desk && S.me && S.me.role !== 'school');
+const memosOf = code => (S.desk ? S.desk.memos : []).filter(m => m.code === String(code)).sort((a, b) => (b.unread - a.unread) || (b.upd - a.upd));
+const remsOf = code => (S.desk ? S.desk.reminders : []).filter(r => r.code === String(code));
+const remDue = r => r.forMe && !r.read && r.due <= Date.now();
+const memoUnread = code => memosOf(code).filter(m => m.unread).length;
+const remDueCount = code => remsOf(code).filter(remDue).length;
+const fmtDT = t => { try { return new Date(t).toLocaleString('ar-OM', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
+function relTime(t) {
+  try {
+    const d = (t - Date.now()) / 60000, rtf = new Intl.RelativeTimeFormat('ar', { numeric: 'auto' });
+    const a = Math.abs(d);
+    return a < 60 ? rtf.format(Math.round(d), 'minute') : a < 1440 ? rtf.format(Math.round(d / 60), 'hour') : rtf.format(Math.round(d / 1440), 'day');
+  } catch { return ''; }
+}
+function deskCount(x, code) {
+  switch (x.id) {
+    case 'd-memos': case 'd-memo-view': return memosOf(code).length;
+    case 'd-memo-edit': return memosOf(code).filter(m => m.canEdit).length;
+    case 'd-rem': return remDueCount(code);
+    case 'd-rem-log': return remsOf(code).length;
+    default: return 0;
+  }
+}
+const deskAlert = (x, code) => (x.id === 'd-memos' || x.id === 'd-memo-view') ? memoUnread(code) > 0 : (x.id === 'd-rem' || x.id === 'd-rem-log') ? remDueCount(code) > 0 : false;
+function tileFlags(code) {
+  if (!deskOn()) return '';
+  const m = memoUnread(code), r = remDueCount(code);
+  return (m ? `<span class="t-flag memo" title="ملاحظات جديدة لم تقرأها (${m})">${ic('note', 13, 2)}</span>` : '')
+    + (r ? `<span class="t-flag bell" title="تذكير حان موعده (${r})">${ic('bell', 13, 2)}</span>` : '');
+}
+function updateTileFlags() {
+  $$('.tile[data-code]').forEach(t => {
+    const code = t.dataset.code, b = t.querySelector('.badge'); if (!b) return;
+    b.querySelectorAll('.t-flag').forEach(x => x.remove());
+    b.insertAdjacentHTML('beforeend', tileFlags(code));
+    t.classList.toggle('due', deskOn() && remDueCount(code) > 0);
+  });
+}
+function openDesk(code) {
+  if (!deskOn() || !getSchool(code)) return;
+  closeSheet(); closeDeskView();
+  if (String(S.focus) !== String(code)) S.focusPath = [];
+  S.deskMode = true; S.focusPath = []; S.focus = null;
+  focusSchool(code, true);
+}
+function deskNode(id) {
+  const code = S.focus; if (!code) return;
+  const top = DESK.find(d => d.id === id);
+  if (top) { S.focusPath = [id]; focusSchool(code, true); return; }
+  ({ 'd-memo-add': () => memoForm(code), 'd-memo-view': () => openDeskView('memos', code, false), 'd-memo-edit': () => openDeskView('memos', code, true),
+     'd-rem-add': () => remForm(code), 'd-rem-log': () => openDeskView('rems', code) })[id]?.();
+}
+function setDesk(d) {
+  if (!d) return;
+  S.desk = d; updateTileFlags(); renderDeskView();
+  if (S.focus && S.deskMode) focusSchool(S.focus, false);
+  deskTick();
+}
+const deskCall = (fn, ...a) => call(fn, ...a).then(setDesk);
+
+/* ---- boards: notes (cards) and reminders log ---- */
+function openDeskView(kind, code, edit = false) {
+  S.deskView = { kind, code: String(code), edit, filter: 'all' };
+  let box = $('.desk-full');
+  if (!box) { box = document.createElement('div'); box.className = 'mm-full desk-full'; box.dir = 'rtl'; document.body.appendChild(box); }
+  renderDeskView();
+}
+function closeDeskView() { S.deskView = null; $('.desk-full')?.remove(); }
+function renderDeskView() {
+  const v = S.deskView, box = $('.desk-full'); if (!v || !box) return;
+  const s = getSchool(v.code); if (!s) return closeDeskView();
+  const scroll = box.querySelector('.desk-body')?.scrollTop || 0;
+  const memo = v.kind === 'memos';
+  const head = `<div class="mm-full-head"><span style="color:var(--${memo ? 'hr' : 't3'})">${ic(memo ? 'note' : 'bell', 22)}</span>
+    <h2>${memo ? (v.edit ? 'تعديل الملاحظات' : 'الملاحظات') : 'سجل التذكيرات'} <span class="desk-sub">${esc(s.name)}</span></h2>
+    <button class="btn primary sm" data-dk="${memo ? 'memo-new' : 'rem-new'}">${ic('plus', 15)} ${memo ? 'ملاحظة جديدة' : 'تذكير جديد'}</button>
+    <button class="icon-btn" data-dk="close" aria-label="إغلاق">${ic('x', 20)}</button></div>`;
+  box.innerHTML = head + `<div class="desk-body" data-lenis-prevent>${memo ? memoBoardHTML(v) : remLogHTML(v)}</div>`;
+  box.querySelector('.desk-body').scrollTop = scroll;
+}
+function deskChips(v, opts) {
+  return `<div class="desk-chips">${opts.map(([k, l, n]) => `<button class="chip ${v.filter === k ? 'on' : ''}" data-dk="filter" data-v="${k}">${l} <span class="n">${n}</span></button>`).join('')}</div>`;
+}
+function memoBoardHTML(v) {
+  const all = memosOf(v.code).filter(m => !v.edit || m.canEdit);
+  const list = all.filter(m => v.filter === 'all' || (v.filter === 'priv' ? m.priv : v.filter === 'new' ? m.unread : !m.priv));
+  const chips = deskChips(v, [['all', 'الكل', all.length], ['pub', 'العامة', all.filter(m => !m.priv).length], ['priv', 'الخاصة', all.filter(m => m.priv).length]]
+    .concat(v.edit ? [] : [['new', 'جديدة', all.filter(m => m.unread).length]]));
+  if (!all.length) return `<div class="empty"><span class="e-icon">${ic('note', 38, 1.5)}</span><h3>${v.edit ? 'لا توجد ملاحظات يمكنك تعديلها' : 'لا توجد ملاحظات لهذه المدرسة'}</h3><p>أضف ملاحظة لتظهر هنا على شكل قصاصة.</p><button class="btn primary" data-dk="memo-new">${ic('plus', 18)} ملاحظة جديدة</button></div>`;
+  return (v.edit ? '<p class="desk-hint">اختر الملاحظة التي تريد تعديلها.</p>' : '') + chips
+    + (list.length ? `<div class="memo-grid">${list.map(m => `<button class="memo c-${m.color || 'none'} ${m.unread ? 'unread' : ''}" data-dk="${v.edit ? 'memo-edit' : 'memo-open'}" data-id="${m.id}">
+      ${m.unread ? '<span class="memo-new">جديدة</span>' : ''}${m.title ? `<b class="memo-t">${esc(m.title)}</b>` : ''}${m.body ? `<span class="memo-b">${esc(m.body)}</span>` : ''}
+      <span class="memo-meta">${m.priv ? `<span class="lk" title="${m.mine ? 'خاصة بك' : 'خاصة بمستخدم آخر'}">${ic('lock', 12, 2)} ${m.mine ? 'خاصة' : 'خاصة · ' + esc(m.by)}</span>` : `<span>${esc(m.by)}</span>`}<span>${fmtDate(m.upd || m.at)}</span>${v.edit ? `<span class="memo-ed">${ic('edit', 13)}</span>` : ''}</span></button>`).join('')}</div>`
+      : '<p class="desk-hint" style="text-align:center;padding:30px">لا توجد ملاحظات بهذا التصنيف.</p>');
+}
+function remStatus(r) {
+  if (r.due > Date.now()) return ['up', 'قادم'];
+  if (!r.forMe) return ['past', 'انتهى'];
+  return r.read ? ['read', 'مقروء'] : ['due', 'حان موعده'];
+}
+function remLogHTML(v) {
+  const all = remsOf(v.code);
+  if (!all.length) return `<div class="empty"><span class="e-icon">${ic('bell', 38, 1.5)}</span><h3>لا توجد تذكيرات لهذه المدرسة</h3><p>أضف تذكيراً بعنوان وموعد، وسيظهر لك إشعار عند حلول موعده.</p><button class="btn primary" data-dk="rem-new">${ic('plus', 18)} تذكير جديد</button></div>`;
+  const st = r => remStatus(r)[0];
+  const cnt = k => all.filter(r => st(r) === k || (k === 'read' && st(r) === 'past')).length;
+  const chips = deskChips(v, [['all', 'الكل', all.length], ['due', 'غير المقروءة', cnt('due')], ['read', 'المقروءة', cnt('read')], ['up', 'القادمة', cnt('up')]]);
+  const groups = [['due', 'حان موعدها ولم تُقرأ', r => st(r) === 'due', (a, b) => b.due - a.due], ['up', 'القادمة', r => st(r) === 'up', (a, b) => a.due - b.due], ['read', 'السابقة', r => st(r) === 'read' || st(r) === 'past', (a, b) => b.due - a.due]]
+    .filter(g => v.filter === 'all' || v.filter === g[0]);
+  return chips + groups.map(([k, label, f, sort]) => { const l = all.filter(f).sort(sort); return l.length ? `<h3 class="rem-h">${label} <span class="cnt">${l.length}</span></h3><div class="rem-list">${l.map(r => { const [sk, sl] = remStatus(r); return `<button class="rem-row s-${sk}" data-dk="rem-open" data-id="${r.id}">
+      <span class="rem-ic">${ic(sk === 'up' ? 'clock' : sk === 'due' ? 'bell' : 'check', 18)}</span>
+      <span class="rem-main"><b>${esc(r.title)}</b>${r.body ? `<span class="rem-b">${esc(r.body)}</span>` : ''}<span class="rem-meta">${fmtDT(r.due)} · ${relTime(r.due)} · ${esc(r.by)}${r.priv ? ` · ${ic('lock', 11, 2)} خاص` : ''}</span></span>
+      <span class="rem-st">${sl}</span></button>`; }).join('')}</div>` : ''; }).join('') || '<p class="desk-hint" style="text-align:center;padding:30px">لا توجد تذكيرات بهذا التصنيف.</p>';
+}
+
+/* ---- note: paper view and the editor ---- */
+const findMemo = id => (S.desk ? S.desk.memos : []).find(m => m.id === id);
+const findRem = id => (S.desk ? S.desk.reminders : []).find(r => r.id === id);
+function memoPaper(m) {
+  const s = getSchool(m.code);
+  openDialog(`<span class="paper-school">${ic('school', 14)} ${esc(s ? s.name : m.code)}</span>`, `<div class="paper c-${m.color || 'none'}">${m.title ? `<h2 class="paper-t">${esc(m.title)}</h2>` : ''}<div class="paper-b">${esc(m.body)}</div>
+      <div class="paper-meta">${m.priv ? `${ic('lock', 12, 2)} ${m.mine ? 'ملاحظة خاصة بك' : 'خاصة بـ ' + esc(m.by)} · ` : 'ملاحظة عامة · '}${esc(m.by)} · ${fmtDT(m.upd || m.at)}${m.upd && m.upd - m.at > 60000 ? ' (معدّلة)' : ''}</div></div>`,
+    [{ label: 'إغلاق', fn: closeDialog }].concat(m.canEdit ? [{ label: `${ic('trash', 15)} حذف`, cls: 'danger', fn: () => deskDelete('memo', m) }, { label: `${ic('edit', 15)} تعديل`, cls: 'primary', fn: () => memoForm(m.code, m) }] : []), 'paper-dlg');
+  if (m.unread) deskCall('apiDeskRead', 'memo', [m.id], true).catch(() => {});
+}
+async function deskDelete(kind, x) {
+  closeDialog();
+  if (!(await confirmBox(`حذف ${kind === 'memo' ? 'الملاحظة' : 'التذكير'} «${x.title || 'بدون عنوان'}»؟`, 'حذف'))) return;
+  deskCall('apiDeleteDesk', kind === 'memo' ? 'memo' : 'reminder', x.id).then(() => toast('تم الحذف')).catch(() => {});
+}
+const visSeg = (priv, name) => S.me.role === 'viewer'
+  ? `<p class="desk-hint" style="margin:0">${ic('lock', 12, 2)} ${name === 'memo' ? 'الملاحظة خاصة بك' : 'التذكير خاص بك'}، فالمشاهد يضيف لنفسه فقط.</p>`
+  : `<div class="seg vis-seg" role="radiogroup" aria-label="الظهور"><button type="button" data-vis="0" class="${priv ? '' : 'on'}" role="radio" aria-checked="${!priv}">${ic('people', 15)} عامة لكل المستخدمين</button><button type="button" data-vis="1" class="${priv ? 'on' : ''}" role="radio" aria-checked="${priv}">${ic('lock', 15)} خاصة بي</button></div>`;
+function wireVis(scope) {
+  scope.querySelectorAll('[data-vis]').forEach(b => b.addEventListener('click', () => scope.querySelectorAll('[data-vis]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); })));
+}
+const visValue = scope => S.me.role === 'viewer' || !!scope.querySelector('[data-vis="1"].on');
+function memoForm(code, m = null) {
+  const s = getSchool(code); if (!s) return;
+  const other = m && !m.mine;
+  let color = m ? m.color : '', busy = false;
+  const save = async () => {
+    if (busy) return;
+    const d = $('#dialogs'), title = $('#mfTitle').value.trim(), body = $('#mfBody').value.trim();
+    if (!title && !body) { $('#mfMsg').textContent = 'اكتب عنواناً أو نصاً للملاحظة.'; $('#mfTitle').focus(); return; }
+    busy = true; $('#mfMsg').textContent = 'جارٍ الحفظ…';
+    try { setDesk(await call('apiSaveMemo', code, m ? m.id : null, { title, body, color, priv: other ? m.priv : visValue(d) })); closeDialog(); toast(m ? 'تم حفظ التعديل' : 'تمت إضافة الملاحظة'); }
+    catch { busy = false; $('#mfMsg').textContent = ''; }
+  };
+  openDialog(`${ic('note', 18)} ${m ? 'تعديل ملاحظة' : 'ملاحظة جديدة'} <span class="desk-sub">${esc(s.name)}</span>`, `<form class="memo-form c-${color || 'none'}" id="mfForm">
+      <input id="mfTitle" class="mf-title" placeholder="العنوان" maxlength="120" value="${esc(m ? m.title : '')}" aria-label="عنوان الملاحظة" autocomplete="off">
+      <textarea id="mfBody" class="mf-body" placeholder="اكتب ملاحظة…" maxlength="8000" aria-label="نص الملاحظة">${esc(m ? m.body : '')}</textarea>
+      <div class="mf-colors" role="radiogroup" aria-label="لون الملاحظة">${MEMO_COLORS.map(([k, l]) => `<button type="button" class="mf-dot c-${k || 'none'} ${color === k ? 'on' : ''}" data-color="${k}" title="${l}" aria-label="${l}"></button>`).join('')}</div></form>
+    ${other ? `<p class="desk-hint" style="margin:0">تعدّل ملاحظة كتبها ${esc(m.by)}؛ تبقى ${m.priv ? 'خاصة به' : 'عامة'}.</p>` : visSeg(m ? m.priv : false, 'memo')}<p id="mfMsg" class="desk-msg" role="alert"></p>`,
+    [{ label: 'إلغاء', fn: closeDialog }].concat(m && m.canEdit ? [{ label: `${ic('trash', 15)} حذف`, cls: 'danger', fn: () => deskDelete('memo', m) }] : []).concat([{ label: `${ic('check', 15)} حفظ`, cls: 'primary', fn: save }]), 'memo-dlg');
+  const d = $('#dialogs'); wireVis(d);
+  d.querySelectorAll('.mf-dot').forEach(b => b.addEventListener('click', () => { color = b.dataset.color; d.querySelectorAll('.mf-dot').forEach(x => x.classList.toggle('on', x === b)); const f = $('#mfForm'); f.className = 'memo-form c-' + (color || 'none'); }));
+  const ta = $('#mfBody'), grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.5) + 'px'; };
+  ta.addEventListener('input', grow); grow();
+  $('#mfTitle').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ta.focus(); } });
+  (m ? ta : $('#mfTitle')).focus();
+}
+
+/* ---- reminders ---- */
+const pad2 = n => String(n).padStart(2, '0');
+const dateVal = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const timeVal = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+function remForm(code, r = null) {
+  const s = getSchool(code); if (!s) return;
+  const other = r && !r.mine;
+  const def = r ? new Date(r.due) : new Date(Math.ceil((Date.now() + 30 * 60000) / 3600000) * 3600000);
+  let busy = false;
+  const save = async () => {
+    if (busy) return;
+    const d = $('#dialogs'), msg = $('#rfMsg'), title = $('#rfTitle').value.trim(), body = $('#rfBody').value.trim();
+    const dv = $('#rfDate').value, tv = $('#rfTime').value;
+    if (!title) { msg.textContent = 'اكتب عنوان التذكير.'; $('#rfTitle').focus(); return; }
+    if (!dv || !tv) { msg.textContent = 'اختر تاريخ التذكير ووقته.'; return; }
+    const [y, mo, da] = dv.split('-').map(Number), [h, mi] = tv.split(':').map(Number);
+    const due = new Date(y, mo - 1, da, h, mi).getTime();
+    if (!(due > Date.now()) && !(r && due === r.due)) { msg.textContent = 'اختر موعداً لاحقاً للوقت الحالي.'; return; }
+    busy = true; msg.textContent = 'جارٍ الحفظ…';
+    try { setDesk(await call('apiSaveReminder', code, r ? r.id : null, { title, body, due, priv: other ? r.priv : visValue(d) })); closeDialog(); toast(r ? 'تم حفظ التذكير' : `تمت إضافة التذكير: ${fmtDT(due)}`); askNotify(); }
+    catch { busy = false; msg.textContent = ''; }
+  };
+  openDialog(`${ic('bell', 18)} ${r ? 'تعديل تذكير' : 'تذكير جديد'} <span class="desk-sub">${esc(s.name)}</span>`, `<form class="rem-form" id="rfForm">
+      <div class="field"><label for="rfTitle">العنوان</label><input class="input" id="rfTitle" maxlength="120" value="${esc(r ? r.title : '')}" placeholder="مثال: زيارة المدرسة" autocomplete="off"></div>
+      <div class="field"><label for="rfBody">نبذة</label><textarea class="input" id="rfBody" rows="3" maxlength="1000" placeholder="تفاصيل مختصرة (اختياري)">${esc(r ? r.body : '')}</textarea></div>
+      <div class="row-flex"><div class="field"><label for="rfDate">التاريخ</label><input class="input" type="date" id="rfDate" value="${dateVal(def)}"></div>
+      <div class="field"><label for="rfTime">الوقت</label><input class="input" type="time" id="rfTime" value="${timeVal(def)}"></div></div></form>
+    ${other ? `<p class="desk-hint" style="margin:0">تعدّل تذكيراً أضافه ${esc(r.by)}؛ يبقى ${r.priv ? 'خاصاً به' : 'عاماً'}.</p>` : visSeg(r ? r.priv : false, 'rem')}<p id="rfMsg" class="desk-msg" role="alert"></p>`,
+    [{ label: 'إلغاء', fn: closeDialog }].concat(r && r.canEdit ? [{ label: `${ic('trash', 15)} حذف`, cls: 'danger', fn: () => deskDelete('rem', r) }] : []).concat([{ label: `${ic('check', 15)} حفظ`, cls: 'primary', fn: save }]));
+  wireVis($('#dialogs'));
+}
+function remOpen(r) {
+  const s = getSchool(r.code), [sk, sl] = remStatus(r);
+  openDialog(`${ic('bell', 18)} تذكير <span class="desk-sub">${esc(s ? s.name : r.code)}</span>`, `<div class="rem-card s-${sk}"><span class="rem-st">${sl}</span><h2>${esc(r.title)}</h2>
+      <div class="rem-when">${ic('clock', 15)} ${fmtDT(r.due)} · ${relTime(r.due)}</div>${r.body ? `<p class="rem-body">${esc(r.body)}</p>` : ''}
+      <div class="paper-meta">${r.priv ? `${ic('lock', 12, 2)} ${r.mine ? 'تذكير خاص بك' : 'خاص بـ ' + esc(r.by)}` : 'تذكير عام'} · أضافه ${esc(r.by)}</div></div>`,
+    [{ label: 'إغلاق', fn: closeDialog }].concat(r.canEdit ? [{ label: `${ic('trash', 15)} حذف`, cls: 'danger', fn: () => deskDelete('rem', r) }, { label: `${ic('edit', 15)} تعديل`, fn: () => remForm(r.code, r) }] : [])
+      .concat(r.forMe && r.read && r.due <= Date.now() ? [{ label: 'تعليم كغير مقروء', fn: () => { closeDialog(); deskCall('apiDeskRead', 'reminder', [r.id], false).catch(() => {}); } }] : []));
+  if (remDue(r)) { dropPop(r.id); deskCall('apiDeskRead', 'reminder', [r.id], true).catch(() => {}); }
+}
+
+/* ---- due-reminder alerts: an in-app card (and a system notification when the browser allows it) ---- */
+const popped = new Set();
+function askNotify() { try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission().catch(() => {}); } catch {} }
+function dropPop(id) { $(`.rem-pop[data-id="${CSS.escape(id)}"]`)?.remove(); }
+function deskTick() {
+  if (!deskOn()) { $('#remPops')?.remove(); return; }
+  const due = S.desk.reminders.filter(remDue);
+  const key = due.map(r => r.id).join(',');
+  if (key !== S.dueKey) { S.dueKey = key; updateTileFlags(); if (S.focus && S.deskMode && !$('#dialogs').children.length) focusSchool(S.focus, false); renderDeskView(); }
+  $$('.rem-pop').forEach(p => { if (!due.some(r => r.id === p.dataset.id)) p.remove(); });
+  const fresh = due.filter(r => !popped.has(r.id) && !$(`.rem-pop[data-id="${CSS.escape(r.id)}"]`)).sort((a, b) => a.due - b.due);
+  if (!fresh.length) return;
+  let host = $('#remPops');
+  if (!host) { host = document.createElement('div'); host.id = 'remPops'; host.dir = 'rtl'; document.body.appendChild(host); }
+  fresh.forEach(r => {
+    popped.add(r.id);
+    const s = getSchool(r.code);
+    host.insertAdjacentHTML('beforeend', `<div class="rem-pop" data-id="${esc(r.id)}" role="alert"><span class="rp-ic">${ic('bell', 20)}</span>
+      <div class="rp-main"><span class="rp-k">حان موعد تذكير</span><b>${esc(r.title)}</b><span class="rp-s">${esc(s ? s.name : r.code)} · ${fmtDT(r.due)}</span></div>
+      <div class="rp-acts"><button class="btn primary sm" data-rp="open">عرض</button><button class="icon-btn" data-rp="later" aria-label="لاحقاً" title="لاحقاً">${ic('x', 16)}</button></div></div>`);
+    try { if (document.hidden && window.Notification && Notification.permission === 'granted') new Notification('تذكير: ' + r.title, { body: (s ? s.name : r.code) + (r.body ? '\n' + r.body : ''), tag: r.id }); } catch {}
+  });
+  while (host.children.length > 3) host.firstElementChild.remove();
+}
+setInterval(deskTick, 15000);
+document.addEventListener('click', e => {
+  const rp = e.target.closest('[data-rp]');
+  if (rp) { const card = rp.closest('.rem-pop'), r = findRem(card.dataset.id); card.remove(); if (rp.dataset.rp === 'open' && r) remOpen(r); return; }
+  const el = e.target.closest('.desk-full [data-dk]'); if (!el) return;
+  const v = S.deskView; if (!v) return;
+  switch (el.dataset.dk) {
+    case 'close': closeDeskView(); break;
+    case 'filter': v.filter = el.dataset.v; renderDeskView(); break;
+    case 'memo-new': memoForm(v.code); break;
+    case 'rem-new': remForm(v.code); break;
+    case 'memo-open': { const m = findMemo(el.dataset.id); if (m) memoPaper(m); break; }
+    case 'memo-edit': { const m = findMemo(el.dataset.id); if (m) memoForm(m.code, m); break; }
+    case 'rem-open': { const r = findRem(el.dataset.id); if (r) remOpen(r); break; }
+  }
+});
+
+/* ---- long-press (touch) or right-click on a school opens its notes & reminders ring ---- */
+let lpTimer = null, lpAt = null, lpFired = 0;
+const lpCancel = () => { clearTimeout(lpTimer); lpTimer = null; lpAt = null; };
+document.addEventListener('pointerdown', e => {
+  const t = e.target.closest('.tile[data-code]'); if (!t || !deskOn() || e.button > 0) return;
+  lpAt = { x: e.clientX, y: e.clientY };
+  lpTimer = setTimeout(() => { lpTimer = null; lpFired = Date.now(); try { navigator.vibrate && navigator.vibrate(15); } catch {} openDesk(t.dataset.code); }, 550);
+});
+document.addEventListener('pointermove', e => { if (lpAt && Math.hypot(e.clientX - lpAt.x, e.clientY - lpAt.y) > 10) lpCancel(); });
+['pointerup', 'pointercancel', 'scroll'].forEach(n => document.addEventListener(n, lpCancel, true));
+document.addEventListener('contextmenu', e => {
+  const t = e.target.closest('.tile[data-code]'); if (!t || !deskOn()) return;
+  e.preventDefault(); lpCancel();
+  if (Date.now() - lpFired < 900) return;
+  lpFired = Date.now(); openDesk(t.dataset.code);
+});
+const longPressed = () => Date.now() - lpFired < 900;
+
 function backToSchool(code) {
   goHome();
   const tile = $(`.tile[data-code="${CSS.escape(String(code))}"]`);
@@ -2538,7 +2890,7 @@ function confirmBox(msg, ok = 'تأكيد') {
 }
 let toastT;
 function toast(m) { $('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.dir = 'rtl'; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200); }
-function closeAll() { S.side = null; $('#overlay').innerHTML = ''; $('#sheetHost').innerHTML = ''; closeDialog(); S.sheet = null; S.panel = null; S.focus = null; S.focusPath = []; }
+function closeAll() { closeDeskView(); S.deskMode = false; S.side = null; $('#overlay').innerHTML = ''; $('#sheetHost').innerHTML = ''; closeDialog(); S.sheet = null; S.panel = null; S.focus = null; S.focusPath = []; }
 
 /* ================= event delegation ================= */
 document.addEventListener('click', async e => {
@@ -2586,7 +2938,8 @@ document.addEventListener('click', async e => {
     case 'tbl-full': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) tableFull(it); break; }
     case 'tbl-pdf': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) tablePdf(it); break; }
     case 'mm-full': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) mmFull(it); break; }
-    case 'school': focusSchool(el.dataset.code); break;
+    case 'school': if (longPressed()) break; if (S.deskMode) { S.deskMode = false; S.focusPath = []; } focusSchool(el.dataset.code); break;
+    case 'dnode': deskNode(el.dataset.id); break;
     case 'unfocus': closeFocus(); break;
     case 'fnode': focusNode(el.dataset.id); break;
     case 'fup': focusUp(); break;

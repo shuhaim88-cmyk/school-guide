@@ -13,7 +13,7 @@ const APP_TITLE = 'دليل المدارس';
 const MAX_FILE_MB = 10;            // أقصى حجم للمرفق الواحد
 const MAX_TEXT = 45000;            // أقصى طول للنص (حد خلية Google Sheets 50 ألف حرف)
 
-const SH = { schools: 'المدارس', sections: 'الأقسام', info: 'المعلومات', users: 'المستخدمون', notes: 'الملاحظات', accounts: 'حسابات المدارس' };
+const SH = { schools: 'المدارس', sections: 'الأقسام', info: 'المعلومات', users: 'المستخدمون', notes: 'الملاحظات', accounts: 'حسابات المدارس', memos: 'ملاحظات المدارس', reminders: 'التذكيرات' };
 const HEAD = {
   schools: ['الولاية', 'رمز المدرسة', 'اسم المدرسة', 'المرحلة', 'الجنس', 'الفترة'],
   sections: ['المعرف', 'القسم الأب', 'اسم القسم', 'الأيقونة', 'اللون', 'الترتيب'],
@@ -22,8 +22,14 @@ const HEAD = {
   users: ['المعرف', 'الاسم', 'الدور', 'بصمة الرقم السري', 'الأقسام المستثناة', 'تاريخ الإضافة'],
   notes: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'عنوان المعلومة',
     'نص الملاحظة', 'كاتبها', 'معرف الكاتب', 'دور الكاتب', 'التاريخ', 'قرأها'],
-  accounts: ['رمز المدرسة', 'اسم المدرسة', 'بصمة كلمة المرور', 'حالة كلمة المرور', 'حالة الحساب', 'آخر دخول', 'تاريخ تغيير كلمة المرور', 'أقسام مضافة لها', 'أقسام مستبعدة عنها']
+  accounts: ['رمز المدرسة', 'اسم المدرسة', 'بصمة كلمة المرور', 'حالة كلمة المرور', 'حالة الحساب', 'آخر دخول', 'تاريخ تغيير كلمة المرور', 'أقسام مضافة لها', 'أقسام مستبعدة عنها'],
+  memos: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'العنوان', 'النص', 'اللون', 'خاصة بالمستخدم (معرفه)', 'كاتبها', 'معرف الكاتب', 'تاريخ الإنشاء', 'تاريخ التعديل', 'قرأها'],
+  reminders: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'العنوان', 'النبذة', 'الموعد', 'خاص بالمستخدم (معرفه)', 'كاتبه', 'معرف الكاتب', 'تاريخ الإنشاء', 'قرأه']
 };
+// أعمدة ملاحظات المدارس والتذكيرات (تبدأ من 0)
+const M = { id: 0, code: 1, sname: 2, title: 3, body: 4, color: 5, priv: 6, by: 7, byId: 8, at: 9, upd: 10, readBy: 11 };
+const R = { id: 0, code: 1, sname: 2, title: 3, body: 4, due: 5, priv: 6, by: 7, byId: 8, at: 9, readBy: 10 };
+const MEMO_COLORS = { '': 1, yellow: 1, green: 1, blue: 1, pink: 1, purple: 1, orange: 1 };
 // أعمدة جدول حسابات المدارس (تبدأ من 0)
 const A = { code: 0, sname: 1, h: 2, pw: 3, status: 4, last: 5, changed: 6, plus: 7, minus: 8 };
 const PW = { def: 'افتراضية', changed: 'تم تغييرها', reset: 'أُعيد تعيينها' };
@@ -92,7 +98,7 @@ function sheet_(k) {
     sh.getRange(1, 1, 1, HEAD[k].length).setValues([HEAD[k]]).setFontWeight('bold').setBackground('#D5EDE8');
     sh.setFrozenRows(1);
     sh.setRightToLeft(true);
-    if (k === 'notes' || k === 'accounts') sh.getRange(k === 'notes' ? 'B:B' : 'A:A').setNumberFormat('@');
+    if (k === 'notes' || k === 'accounts' || k === 'memos' || k === 'reminders') sh.getRange(k === 'accounts' ? 'A:A' : 'B:B').setNumberFormat('@');
   }
   if (k === 'accounts' && !ACC_HEAD_OK_) {
     const h = sh.getRange(1, A.plus + 1, 1, 2);
@@ -436,6 +442,7 @@ function apiBootstrap(token) {
     users: u.role === 'admin' ? readUsers_().map(publicUser_) : null,
     ver: ver_(),
     unreadNotes: unreadCount_(u),
+    desk: deskFor_(u),
     driveUrl: u.role === 'admin' ? rootFolder_().getUrl() : ''
   };
 }
@@ -513,6 +520,107 @@ function apiDeleteNote(token, id) {
     if (!hit) throw new Error('NOT_FOUND');
     sh.deleteRow(hit.getRow());
     return { unread: unreadCount_(u), ver: bump_() };
+  });
+}
+
+/* ---------- ملاحظات المدارس والتذكيرات ----------
+ * لكل مدرسة ملاحظات وتذكيرات يكتبها مستخدمو الدليل (لا تظهر لحسابات المدارس).
+ * العامة تظهر لكل المستخدمين، والخاصة لكاتبها فقط، ويرى المدير الجميع.
+ * المشاهد يضيف الخاصة فقط، ولا يعدّل أو يحذف إلا كاتبها أو المدير. */
+function staff_(token) { const u = auth_(token); if (u.role === 'school') throw new Error('FORBIDDEN'); return u; }
+const deskRows_ = k => sheet_(k).getLastRow() < 2 ? [] : rows_(k);
+const deskSees_ = (priv, u) => !priv || String(priv) === u.id || u.role === 'admin';
+function deskFor_(u) {
+  if (u.role === 'school') return null;
+  const memos = deskRows_('memos').filter(r => r[M.id] && deskSees_(r[M.priv], u)).map(r => {
+    const read = idList_(r[M.readBy]);
+    return { id: String(r[M.id]), code: String(r[M.code]), title: String(r[M.title]), body: String(r[M.body]), color: String(r[M.color] || ''),
+      priv: !!r[M.priv], mine: String(r[M.byId]) === u.id, by: String(r[M.by]), at: +r[M.at] || 0, upd: +r[M.upd] || 0,
+      unread: !r[M.priv] && String(r[M.byId]) !== u.id && read.indexOf(u.id) < 0,
+      canEdit: String(r[M.byId]) === u.id || u.role === 'admin' };
+  });
+  const reminders = deskRows_('reminders').filter(r => r[R.id] && deskSees_(r[R.priv], u)).map(r => ({
+    id: String(r[R.id]), code: String(r[R.code]), title: String(r[R.title]), body: String(r[R.body]), due: +r[R.due] || 0,
+    priv: !!r[R.priv], mine: String(r[R.byId]) === u.id, by: String(r[R.by]), at: +r[R.at] || 0,
+    forMe: !r[R.priv] || String(r[R.priv]) === u.id,      // يُنبَّه به هذا المستخدم
+    read: idList_(r[R.readBy]).indexOf(u.id) >= 0,
+    canEdit: String(r[R.byId]) === u.id || u.role === 'admin' }));
+  return { memos, reminders };
+}
+function deskFind_(k, id) {
+  const rows = deskRows_(k);
+  for (let i = 0; i < rows.length; i++) if (String(rows[i][0]) === String(id)) return { row: i + 2, r: rows[i] };
+  return null;
+}
+function deskClean_(v, max) { return String(v == null ? '' : v).replace(/\r/g, '').trim().slice(0, max); }
+function apiSaveMemo(token, code, id, m) {
+  const u = staff_(token); m = m || {};
+  const title = deskClean_(m.title, 120), body = deskClean_(m.body, 8000);
+  if (!title && !body) throw new Error('EMPTY');
+  const color = MEMO_COLORS[m.color] ? String(m.color || '') : '';
+  const priv = (m.priv || u.role === 'viewer') ? u.id : '';
+  return withLock_(() => {
+    const sh = sheet_('memos'), now = Date.now();
+    if (id) {
+      const f = deskFind_('memos', id); if (!f) throw new Error('NOT_FOUND');
+      if (String(f.r[M.byId]) !== u.id && u.role !== 'admin') throw new Error('FORBIDDEN');
+      const keepPriv = String(f.r[M.byId]) !== u.id ? String(f.r[M.priv] || '') : priv;   // المدير لا يغيّر خصوصية ملاحظة غيره
+      sh.getRange(f.row, M.title + 1, 1, 4).setValues([[title, body, color, keepPriv]]);
+      sh.getRange(f.row, M.upd + 1).setValue(now);
+    } else {
+      if (!schoolName_(code)) throw new Error('NOT_FOUND');
+      sh.appendRow([newId_(), String(code), schoolName_(code), title, body, color, priv, u.name, u.id, now, now, '']);
+    }
+    bump_();
+    return deskFor_(u);
+  });
+}
+function apiSaveReminder(token, code, id, m) {
+  const u = staff_(token); m = m || {};
+  const title = deskClean_(m.title, 120), body = deskClean_(m.body, 1000), due = Math.round(+m.due || 0);
+  if (!title) throw new Error('EMPTY');
+  if (!due) throw new Error('BAD_DATE');
+  const priv = (m.priv || u.role === 'viewer') ? u.id : '';
+  return withLock_(() => {
+    const sh = sheet_('reminders');
+    if (id) {
+      const f = deskFind_('reminders', id); if (!f) throw new Error('NOT_FOUND');
+      if (String(f.r[R.byId]) !== u.id && u.role !== 'admin') throw new Error('FORBIDDEN');
+      const keepPriv = String(f.r[R.byId]) !== u.id ? String(f.r[R.priv] || '') : priv;
+      const moved = +f.r[R.due] !== due;
+      sh.getRange(f.row, R.title + 1, 1, 4).setValues([[title, body, due, keepPriv]]);
+      if (moved) sh.getRange(f.row, R.readBy + 1).setValue('');   // موعد جديد: يُنبَّه به من جديد
+    } else {
+      if (!schoolName_(code)) throw new Error('NOT_FOUND');
+      sh.appendRow([newId_(), String(code), schoolName_(code), title, body, due, priv, u.name, u.id, Date.now(), '']);
+    }
+    bump_();
+    return deskFor_(u);
+  });
+}
+function apiDeleteDesk(token, kind, id) {
+  const u = staff_(token), k = kind === 'reminder' ? 'reminders' : 'memos';
+  return withLock_(() => {
+    const f = deskFind_(k, id); if (!f) throw new Error('NOT_FOUND');
+    if (String(f.r[k === 'memos' ? M.byId : R.byId]) !== u.id && u.role !== 'admin') throw new Error('FORBIDDEN');
+    sheet_(k).deleteRow(f.row);
+    bump_();
+    return deskFor_(u);
+  });
+}
+// يسجّل أن المستخدم قرأ ملاحظة أو تذكيراً (أو أعاده غير مقروء)
+function apiDeskRead(token, kind, ids, read) {
+  const u = staff_(token), k = kind === 'reminder' ? 'reminders' : 'memos', col = (k === 'memos' ? M.readBy : R.readBy) + 1;
+  const want = {}; (ids || []).forEach(x => { want[String(x)] = true; });
+  return withLock_(() => {
+    const sh = sheet_(k);
+    deskRows_(k).forEach((r, i) => {
+      if (!want[String(r[0])] || !deskSees_(r[k === 'memos' ? M.priv : R.priv], u)) return;
+      const list = idList_(r[col - 1]).filter(x => x !== u.id);
+      if (read !== false) list.push(u.id);
+      sh.getRange(i + 2, col).setValue(list.join(','));
+    });
+    return deskFor_(u);
   });
 }
 
