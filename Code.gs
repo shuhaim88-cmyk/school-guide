@@ -526,20 +526,21 @@ function apiDeleteNote(token, id) {
 /* ---------- ملاحظات المدارس والتذكيرات ----------
  * لكل مدرسة ملاحظات وتذكيرات يكتبها مستخدمو الدليل (لا تظهر لحسابات المدارس).
  * العامة تظهر لكل المستخدمين، والخاصة لكاتبها فقط، ويرى المدير الجميع.
- * المشاهد يضيف الخاصة فقط، ولا يعدّل أو يحذف إلا كاتبها أو المدير. */
+ * ملاحظات المشاهد تظهر له وللمحررين والمدير إجبارياً، وتذكيراته خاصة به، ولا يعدّل أو يحذف إلا كاتبها أو المدير. */
 function staff_(token) { const u = auth_(token); if (u.role === 'school') throw new Error('FORBIDDEN'); return u; }
 const deskRows_ = k => sheet_(k).getLastRow() < 2 ? [] : rows_(k);
-const deskSees_ = (priv, u) => !priv || String(priv) === u.id || u.role === 'admin';
+const EDITORS = 'editors';   // ملاحظة المشاهد: تظهر له وللمحررين والمدير فقط
+const deskSees_ = (priv, u, byId) => !priv || String(priv) === u.id || u.role === 'admin' || (String(priv) === EDITORS && (u.role === 'editor' || String(byId) === u.id));
 function deskFor_(u) {
   if (u.role === 'school') return null;
-  const memos = deskRows_('memos').filter(r => r[M.id] && deskSees_(r[M.priv], u)).map(r => {
-    const read = idList_(r[M.readBy]);
+  const memos = deskRows_('memos').filter(r => r[M.id] && deskSees_(r[M.priv], u, r[M.byId])).map(r => {
+    const read = idList_(r[M.readBy]), p = String(r[M.priv] || ''), aud = !p ? 'all' : p === EDITORS ? 'editors' : 'me';
     return { id: String(r[M.id]), code: String(r[M.code]), title: String(r[M.title]), body: String(r[M.body]), color: String(r[M.color] || ''),
-      priv: !!r[M.priv], mine: String(r[M.byId]) === u.id, by: String(r[M.by]), at: +r[M.at] || 0, upd: +r[M.upd] || 0,
-      unread: !r[M.priv] && String(r[M.byId]) !== u.id && read.indexOf(u.id) < 0,
+      aud, priv: aud === 'me', mine: String(r[M.byId]) === u.id, by: String(r[M.by]), at: +r[M.at] || 0, upd: +r[M.upd] || 0,
+      unread: (aud === 'all' || (aud === 'editors' && u.role !== 'viewer')) && String(r[M.byId]) !== u.id && read.indexOf(u.id) < 0,
       canEdit: String(r[M.byId]) === u.id || u.role === 'admin' };
   });
-  const reminders = deskRows_('reminders').filter(r => r[R.id] && deskSees_(r[R.priv], u)).map(r => ({
+  const reminders = deskRows_('reminders').filter(r => r[R.id] && deskSees_(r[R.priv], u, r[R.byId])).map(r => ({
     id: String(r[R.id]), code: String(r[R.code]), title: String(r[R.title]), body: String(r[R.body]), due: +r[R.due] || 0,
     priv: !!r[R.priv], mine: String(r[R.byId]) === u.id, by: String(r[R.by]), at: +r[R.at] || 0,
     forMe: !r[R.priv] || String(r[R.priv]) === u.id,      // يُنبَّه به هذا المستخدم
@@ -558,7 +559,7 @@ function apiSaveMemo(token, code, id, m) {
   const title = deskClean_(m.title, 120), body = deskClean_(m.body, 8000);
   if (!title && !body) throw new Error('EMPTY');
   const color = MEMO_COLORS[m.color] ? String(m.color || '') : '';
-  const priv = (m.priv || u.role === 'viewer') ? u.id : '';
+  const priv = u.role === 'viewer' ? EDITORS : m.priv ? u.id : '';
   return withLock_(() => {
     const sh = sheet_('memos'), now = Date.now();
     if (id) {
@@ -615,7 +616,7 @@ function apiDeskRead(token, kind, ids, read) {
   return withLock_(() => {
     const sh = sheet_(k);
     deskRows_(k).forEach((r, i) => {
-      if (!want[String(r[0])] || !deskSees_(r[k === 'memos' ? M.priv : R.priv], u)) return;
+      if (!want[String(r[0])] || !deskSees_(r[k === 'memos' ? M.priv : R.priv], u, r[k === 'memos' ? M.byId : R.byId])) return;
       const list = idList_(r[col - 1]).filter(x => x !== u.id);
       if (read !== false) list.push(u.id);
       sh.getRange(i + 2, col).setValue(list.join(','));

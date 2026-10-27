@@ -1387,14 +1387,15 @@ function deskChips(v, opts) {
 }
 function memoBoardHTML(v) {
   const all = memosOf(v.code).filter(m => !v.edit || m.canEdit);
-  const list = all.filter(m => v.filter === 'all' || (v.filter === 'priv' ? m.priv : v.filter === 'new' ? m.unread : !m.priv));
-  const chips = deskChips(v, [['all', 'الكل', all.length], ['pub', 'العامة', all.filter(m => !m.priv).length], ['priv', 'الخاصة', all.filter(m => m.priv).length]]
+  const aud = m => m.aud || (m.priv ? 'me' : 'all'), nEd = all.filter(m => aud(m) === 'editors').length;
+  const list = all.filter(m => v.filter === 'all' || (v.filter === 'new' ? m.unread : v.filter === 'pub' ? aud(m) === 'all' : v.filter === 'ed' ? aud(m) === 'editors' : aud(m) === 'me'));
+  const chips = deskChips(v, [['all', 'الكل', all.length], ['pub', 'العامة', all.filter(m => aud(m) === 'all').length]].concat(nEd || S.me.role === 'viewer' ? [['ed', 'ملاحظات المشاهدين', nEd]] : [], [['priv', 'الخاصة', all.filter(m => aud(m) === 'me').length]])
     .concat(v.edit ? [] : [['new', 'جديدة', all.filter(m => m.unread).length]]));
   if (!all.length) return `<div class="empty"><span class="e-icon">${ic('note', 38, 1.5)}</span><h3>${v.edit ? 'لا توجد ملاحظات يمكنك تعديلها' : 'لا توجد ملاحظات لهذه المدرسة'}</h3><p>أضف ملاحظة لتظهر هنا على شكل قصاصة.</p><button class="btn primary" data-dk="memo-new">${ic('plus', 18)} ملاحظة جديدة</button></div>`;
   return (v.edit ? '<p class="desk-hint">اختر الملاحظة التي تريد تعديلها.</p>' : '') + chips
     + (list.length ? `<div class="memo-grid">${list.map(m => `<button class="memo c-${m.color || 'none'} ${m.unread ? 'unread' : ''}" data-dk="${v.edit ? 'memo-edit' : 'memo-open'}" data-id="${m.id}">
       ${m.unread ? '<span class="memo-new">جديدة</span>' : ''}${m.title ? `<b class="memo-t">${esc(m.title)}</b>` : ''}${m.body ? `<span class="memo-b">${esc(m.body)}</span>` : ''}
-      <span class="memo-meta">${m.priv ? `<span class="lk" title="${m.mine ? 'خاصة بك' : 'خاصة بمستخدم آخر'}">${ic('lock', 12, 2)} ${m.mine ? 'خاصة' : 'خاصة · ' + esc(m.by)}</span>` : `<span>${esc(m.by)}</span>`}<span>${fmtDate(m.upd || m.at)}</span>${v.edit ? `<span class="memo-ed">${ic('edit', 13)}</span>` : ''}</span></button>`).join('')}</div>`
+      <span class="memo-meta">${m.aud === 'editors' ? `<span class="lk" title="ملاحظة مشاهد: تظهر له وللمحررين والمدير">${ic('eye', 12, 2)} ${m.mine ? 'تظهر للمحررين' : 'مشاهد · ' + esc(m.by)}</span>` : m.priv ? `<span class="lk" title="${m.mine ? 'خاصة بك' : 'خاصة بمستخدم آخر'}">${ic('lock', 12, 2)} ${m.mine ? 'خاصة' : 'خاصة · ' + esc(m.by)}</span>` : `<span>${esc(m.by)}</span>`}<span>${fmtDate(m.upd || m.at)}</span>${v.edit ? `<span class="memo-ed">${ic('edit', 13)}</span>` : ''}</span></button>`).join('')}</div>`
       : '<p class="desk-hint" style="text-align:center;padding:30px">لا توجد ملاحظات بهذا التصنيف.</p>');
 }
 function remStatus(r) {
@@ -1422,7 +1423,7 @@ const findRem = id => (S.desk ? S.desk.reminders : []).find(r => r.id === id);
 function memoPaper(m) {
   const s = getSchool(m.code);
   openDialog(`<span class="paper-school">${ic('school', 14)} ${esc(s ? s.name : m.code)}</span>`, `<div class="paper c-${m.color || 'none'}">${m.title ? `<h2 class="paper-t">${esc(m.title)}</h2>` : ''}<div class="paper-b">${esc(m.body)}</div>
-      <div class="paper-meta">${m.priv ? `${ic('lock', 12, 2)} ${m.mine ? 'ملاحظة خاصة بك' : 'خاصة بـ ' + esc(m.by)} · ` : 'ملاحظة عامة · '}${esc(m.by)} · ${fmtDT(m.upd || m.at)}${m.upd && m.upd - m.at > 60000 ? ' (معدّلة)' : ''}</div></div>`,
+      <div class="paper-meta">${m.aud === 'editors' ? `${ic('eye', 12, 2)} ملاحظة مشاهد تظهر ${m.mine ? 'لك' : 'لكاتبها'} وللمحررين والمدير · ` : m.priv ? `${ic('lock', 12, 2)} ${m.mine ? 'ملاحظة خاصة بك' : 'خاصة بـ ' + esc(m.by)} · ` : 'ملاحظة عامة · '}${esc(m.by)} · ${fmtDT(m.upd || m.at)}${m.upd && m.upd - m.at > 60000 ? ' (معدّلة)' : ''}</div></div>`,
     [{ label: 'إغلاق', fn: closeDialog }].concat(m.canEdit ? [{ label: `${ic('trash', 15)} حذف`, cls: 'danger', fn: () => deskDelete('memo', m) }, { label: `${ic('edit', 15)} تعديل`, cls: 'primary', fn: () => memoForm(m.code, m) }] : []), 'paper-dlg');
   if (m.unread) deskCall('apiDeskRead', 'memo', [m.id], true).catch(() => {});
 }
@@ -1432,7 +1433,7 @@ async function deskDelete(kind, x) {
   deskCall('apiDeleteDesk', kind === 'memo' ? 'memo' : 'reminder', x.id).then(() => toast('تم الحذف')).catch(() => {});
 }
 const visSeg = (priv, name) => S.me.role === 'viewer'
-  ? `<p class="desk-hint" style="margin:0">${ic('lock', 12, 2)} ${name === 'memo' ? 'الملاحظة خاصة بك' : 'التذكير خاص بك'}، فالمشاهد يضيف لنفسه فقط.</p>`
+  ? `<p class="desk-hint" style="margin:0">${name === 'memo' ? `${ic('eye', 12, 2)} تظهر ملاحظتك لك وللمحررين والمدير، ولا يراها باقي المشاهدين.` : `${ic('lock', 12, 2)} التذكير خاص بك.`}</p>`
   : `<div class="seg vis-seg" role="radiogroup" aria-label="الظهور"><button type="button" data-vis="0" class="${priv ? '' : 'on'}" role="radio" aria-checked="${!priv}">${ic('people', 15)} عامة لكل المستخدمين</button><button type="button" data-vis="1" class="${priv ? 'on' : ''}" role="radio" aria-checked="${priv}">${ic('lock', 15)} خاصة بي</button></div>`;
 function wireVis(scope) {
   scope.querySelectorAll('[data-vis]').forEach(b => b.addEventListener('click', () => scope.querySelectorAll('[data-vis]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); })));
@@ -1454,7 +1455,7 @@ function memoForm(code, m = null) {
       <input id="mfTitle" class="mf-title" placeholder="العنوان" maxlength="120" value="${esc(m ? m.title : '')}" aria-label="عنوان الملاحظة" autocomplete="off">
       <textarea id="mfBody" class="mf-body" placeholder="اكتب ملاحظة…" maxlength="8000" aria-label="نص الملاحظة">${esc(m ? m.body : '')}</textarea>
       <div class="mf-colors" role="radiogroup" aria-label="لون الملاحظة">${MEMO_COLORS.map(([k, l]) => `<button type="button" class="mf-dot c-${k || 'none'} ${color === k ? 'on' : ''}" data-color="${k}" title="${l}" aria-label="${l}"></button>`).join('')}</div></form>
-    ${other ? `<p class="desk-hint" style="margin:0">تعدّل ملاحظة كتبها ${esc(m.by)}؛ تبقى ${m.priv ? 'خاصة به' : 'عامة'}.</p>` : visSeg(m ? m.priv : false, 'memo')}<p id="mfMsg" class="desk-msg" role="alert"></p>`,
+    ${other ? `<p class="desk-hint" style="margin:0">تعدّل ملاحظة كتبها ${esc(m.by)}؛ تبقى ${m.aud === 'editors' ? 'ظاهرة له وللمحررين' : m.priv ? 'خاصة به' : 'عامة'}.</p>` : visSeg(m ? m.priv : false, 'memo')}<p id="mfMsg" class="desk-msg" role="alert"></p>`,
     [{ label: 'إلغاء', fn: closeDialog }].concat(m && m.canEdit ? [{ label: `${ic('trash', 15)} حذف`, cls: 'danger', fn: () => deskDelete('memo', m) }] : []).concat([{ label: `${ic('check', 15)} حفظ`, cls: 'primary', fn: save }]), 'memo-dlg');
   const d = $('#dialogs'); wireVis(d);
   d.querySelectorAll('.mf-dot').forEach(b => b.addEventListener('click', () => { color = b.dataset.color; d.querySelectorAll('.mf-dot').forEach(x => x.classList.toggle('on', x === b)); const f = $('#mfForm'); f.className = 'memo-form c-' + (color || 'none'); }));
