@@ -343,9 +343,13 @@ tr:last-child td{border-bottom:0}
 .dialog .d-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .scrim.top{z-index:70}
 .toast{position:fixed;z-index:90;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px);animation:fade .2s both}
-.lightbox{position:fixed;inset:0;z-index:80;background:rgba(5,15,14,.88);display:grid;place-items:center;padding:24px}
-.lightbox img{max-width:100%;max-height:100%;border-radius:10px}
-.lightbox .lb-bar{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;gap:10px}
+.lightbox{position:fixed;inset:0;z-index:80;background:rgba(5,15,14,.9);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:calc(76px + env(safe-area-inset-top,0px)) 16px 24px}
+.lb-stage{display:flex;min-height:100%;min-width:100%;width:max-content}
+.lightbox img{margin:auto;max-width:calc(100vw - 32px);max-height:calc(100vh - 110px);border-radius:10px;cursor:zoom-in;user-select:none;-webkit-user-drag:none;background:#fff}
+.lightbox.full img{max-width:none;max-height:none;cursor:grab}
+.lightbox.full.drag img{cursor:grabbing}
+.lightbox .lb-acts{display:flex;gap:8px;align-items:center}
+.lightbox .lb-bar{position:fixed;z-index:1;top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;gap:10px}
 .focus-scrim{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 72%,transparent);backdrop-filter:blur(3px) saturate(.5);-webkit-backdrop-filter:blur(3px) saturate(.5);animation:fade .2s both}
 .focus-wrap{position:fixed;z-index:51;transform-origin:center}
 .focus-wrap .orbit{margin:0}
@@ -3054,8 +3058,28 @@ document.addEventListener('click', async e => {
       const img = el.querySelector('img'); if (!img || !img.src) break;
       const it = sheetItems().find(x => x.id === el.dataset.id);
       const lb = document.createElement('div'); lb.className = 'lightbox'; lb.dir = 'rtl';
-      lb.innerHTML = `<img src="${img.src}" alt=""><div class="lb-bar"><button class="btn primary" data-lb="dl">${ic('download', 18)} تنزيل الصورة</button><button class="icon-btn" data-lb="x" aria-label="إغلاق">${ic('x', 20)}</button></div>`;
-      lb.addEventListener('click', ev => { const b = ev.target.closest('[data-lb]'); if (b && b.dataset.lb === 'dl') { if (it) downloadItem(it); return; } if (ev.target.tagName !== 'IMG') lb.remove(); });
+      lb.setAttribute('data-lenis-prevent', '');
+      lb.innerHTML = `<div class="lb-stage"><img src="${img.src}" alt="" draggable="false"></div><div class="lb-bar"><div class="lb-acts"><button class="btn primary" data-lb="dl">${ic('download', 18)} تنزيل الصورة</button><button class="btn" data-lb="zoom">${ic('expand', 17)} <span>الحجم الكامل</span></button></div><button class="icon-btn" data-lb="x" aria-label="إغلاق">${ic('x', 20)}</button></div>`;
+      const big = lb.querySelector('img'), zb = lb.querySelector('[data-lb="zoom"] span');
+      /* Two views: the whole picture fitted to the screen, or full size (at least the screen's width) scrolled or dragged around. */
+      const setFull = (on, at) => {
+        const r = big.getBoundingClientRect(), fx = at ? (at.x - r.left) / r.width : 0.5, fy = at ? (at.y - r.top) / r.height : 0;
+        lb.classList.toggle('full', on); zb.textContent = on ? 'ملاءمة الشاشة' : 'الحجم الكامل';
+        big.style.width = on ? Math.max(big.naturalWidth || 0, lb.clientWidth - 32) + 'px' : '';
+        if (on) { const n = big.getBoundingClientRect(); lb.scrollTop += n.top + fy * n.height - (at ? at.y : n.top + 80); lb.scrollLeft += n.left + fx * n.width - (at ? at.x : lb.clientWidth / 2); }
+        else lb.scrollTo(0, 0);
+      };
+      let drag = null, moved = false;
+      big.addEventListener('pointerdown', ev => { if (!lb.classList.contains('full') || ev.pointerType !== 'mouse') return; drag = { x: ev.clientX, y: ev.clientY, l: lb.scrollLeft, t: lb.scrollTop }; moved = false; big.setPointerCapture(ev.pointerId); });
+      big.addEventListener('pointermove', ev => { if (!drag) return; const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; lb.classList.add('drag'); } lb.scrollLeft = drag.l - dx; lb.scrollTop = drag.t - dy; });
+      big.addEventListener('pointerup', () => { drag = null; lb.classList.remove('drag'); });
+      lb.addEventListener('click', ev => {
+        const b = ev.target.closest('[data-lb]');
+        if (b && b.dataset.lb === 'dl') { if (it) downloadItem(it); return; }
+        if (b && b.dataset.lb === 'zoom') { setFull(!lb.classList.contains('full')); return; }
+        if (ev.target === big) { if (moved) { moved = false; return; } setFull(!lb.classList.contains('full'), { x: ev.clientX, y: ev.clientY }); return; }
+        if (!ev.target.closest('.lb-bar') || (b && b.dataset.lb === 'x')) lb.remove();
+      });
       document.body.appendChild(lb); break;
     }
     case 'dl': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) downloadItem(it); break; }
