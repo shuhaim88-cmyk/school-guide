@@ -74,7 +74,7 @@ html.lenis,html.lenis body{height:auto}
 .lenis.lenis-smooth iframe{pointer-events:none}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
-  background-image:radial-gradient(1200px 500px at 85% -10%,var(--accent-soft),transparent 70%)}
+  background-image:radial-gradient(1200px 500px at 85% -10%,var(--accent-soft),transparent 70%);background-repeat:no-repeat}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--surface)}
 *{box-sizing:border-box}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -495,6 +495,71 @@ tr:last-child td{border-bottom:0}
   .sheet .info-table td,.sheet .info-table th{font-size:13.5px;padding:8px 10px}
   .sheet .item-img,.sheet .item-img img{max-height:65vh}
 }
+/* ---------- home wheel ---------- */
+.wheel{--dh:330px;position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(190px,230px) 1fr;gap:20px;align-items:start;margin-top:12px;padding-bottom:10px}
+.wheel::before{content:"";position:absolute;inset:-30px -10px;z-index:-1;pointer-events:none;opacity:.75;
+  background:radial-gradient(40% 50% at 20% 30%,color-mix(in srgb,var(--accent-soft) 90%,transparent),transparent 70%),radial-gradient(35% 45% at 75% 70%,color-mix(in srgb,var(--bld-soft) 90%,transparent),transparent 70%),radial-gradient(30% 40% at 55% 15%,color-mix(in srgb,var(--hr-soft) 80%,transparent),transparent 70%)}
+.wl-side{position:sticky;top:84px;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.wl-drum{--h:46px;position:relative;height:var(--dh);border-radius:26px;overflow:hidden;perspective:640px;cursor:grab;touch-action:none;outline:none;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--surface) 55%,transparent),color-mix(in srgb,var(--surface) 80%,transparent) 50%,color-mix(in srgb,var(--surface) 55%,transparent));
+  backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid color-mix(in srgb,#fff 50%,var(--line));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--ink) 8%,transparent),0 18px 40px -24px rgba(6,30,26,.35)}
+.wl-drum:focus-visible{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 4px var(--accent)}
+.wheel.dragging .wl-drum,.wheel.dragging .wl-view{cursor:grabbing}
+.wl-cyl{position:absolute;inset:0;transform-style:preserve-3d}
+.wl-item{position:absolute;inset-inline:10px;top:50%;height:var(--h);margin-top:calc(var(--h) / -2);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;border:0;background:none;color:var(--ink);font-size:15px;font-weight:500;backface-visibility:hidden;will-change:transform,opacity;transition:color .25s,font-size .25s}
+.wl-item .wl-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-item .wl-c{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--surface) 70%,transparent);border-radius:999px;padding:1px 8px;flex:none}
+.wl-item.on{color:var(--accent);font-weight:700;font-size:16.5px}
+.wl-item.on .wl-c{background:var(--accent);color:var(--accent-ink)}
+.wl-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 70%,transparent) 0%,transparent 26%,transparent 74%,color-mix(in srgb,var(--bg) 70%,transparent) 100%),repeating-linear-gradient(180deg,transparent 0 3px,color-mix(in srgb,var(--ink) 3%,transparent) 3px 4px)}
+.wl-lens{position:absolute;inset-inline:8px;top:50%;height:calc(var(--h) + 6px);transform:translateY(-50%);pointer-events:none;border-radius:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,#fff 35%,transparent),color-mix(in srgb,var(--accent-soft) 35%,transparent));border:1.5px solid color-mix(in srgb,var(--accent) 55%,transparent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 10%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 60%,transparent)}
+.wl-lens::before,.wl-lens::after{content:"";position:absolute;top:50%;width:0;height:0;border-block:6px solid transparent;transform:translateY(-50%)}
+.wl-lens::before{right:-9px;border-right:7px solid var(--accent)}.wl-lens::after{left:-9px;border-left:7px solid var(--accent)}
+.wl-hint{display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--muted)}
+.wl-stage{min-width:0;display:flex;flex-direction:column;gap:12px}
+.wl-view{position:relative;height:clamp(420px,66vh,760px);perspective:1900px;perspective-origin:50% 45%;touch-action:pan-y;cursor:grab;clip-path:inset(-40px 0 -80px 0)}
+.wl-side{z-index:2}
+.wl-ring{position:absolute;inset:0;transform-style:preserve-3d}
+.wpage{position:absolute;inset:0;backface-visibility:hidden;will-change:transform;--dim:0}
+.wpage:not(.cur){cursor:pointer}
+.wpage-glass{position:relative;height:100%;display:flex;flex-direction:column;border-radius:30px;overflow:hidden;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--surface) 52%,transparent));
+  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);border:1px solid color-mix(in srgb,#fff 55%,var(--line));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 75%,transparent),0 34px 70px -36px rgba(6,30,26,.45)}
+.wpage-glass::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:color-mix(in srgb,var(--bg) calc(var(--dim) * 55%),transparent)}
+.wpage-glass::before{content:"";position:absolute;inset:0 0 auto;height:120px;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,#fff 28%,transparent),transparent);border-radius:inherit}
+.wpage-h{position:relative;display:flex;align-items:center;gap:10px;padding:18px 22px 12px}
+.wpage-h h2{font-size:clamp(19px,2.2vw,24px);flex:1;min-width:0}
+.wpage-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);flex:none}
+.wpage-n{font-size:12.5px;color:var(--muted);background:color-mix(in srgb,var(--surface) 70%,transparent);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-variant-numeric:tabular-nums}
+.wpage-body{position:relative;flex:1;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:4px 16px 22px;scrollbar-width:thin}
+.wpage-body .tiles{grid-template-columns:repeat(auto-fill,minmax(122px,1fr))}
+.wpage .tile:hover{background:color-mix(in srgb,var(--surface) 75%,transparent)}
+.wpage.in .tile{animation:tileIn .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k,0) * 28ms)}
+@keyframes tileIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.wl-nav{display:flex;align-items:center;justify-content:center;gap:14px}
+.wl-nav .icon-btn{border-radius:50%;background:color-mix(in srgb,var(--surface) 70%,transparent);backdrop-filter:blur(10px)}
+.wl-nav .icon-btn:disabled{opacity:.35;pointer-events:none}
+.wl-ind{font-size:13px;color:var(--muted);min-width:170px;text-align:center}
+.wl-ind b{color:var(--ink)}
+:root[data-theme="dark"] .wl-drum,:root[data-theme="dark"] .wpage-glass{border-color:color-mix(in srgb,#fff 12%,transparent)}
+:root[data-theme="dark"] .wpage-glass::before{background:linear-gradient(180deg,color-mix(in srgb,#fff 5%,transparent),transparent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wl-drum,:root:not([data-theme="light"]) .wpage-glass{border-color:color-mix(in srgb,#fff 12%,transparent)}:root:not([data-theme="light"]) .wpage-glass::before{background:linear-gradient(180deg,color-mix(in srgb,#fff 5%,transparent),transparent)}}
+@media (max-width:760px){
+  .wheel{grid-template-columns:1fr;gap:12px;--dh:150px}
+  .wl-side{position:relative;top:0}
+  .wl-drum{--h:38px;border-radius:22px}
+  .wl-hint{display:none}
+  .wl-view{height:max(380px,calc(100svh - 330px));perspective:1200px}
+  .wpage-glass{border-radius:24px}
+  .wpage-h{padding:14px 16px 10px}
+  .wpage-body{padding:2px 8px 16px}
+  .wpage-body .tiles{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+}
+@media (prefers-reduced-motion:reduce){.wpage.in .tile{animation:none}}
 .pdf-sheet{position:fixed;left:-20000px;top:0;width:max-content;max-width:3000px;min-width:720px;background:#fff;color:#111;padding:36px 40px;font-family:var(--f-body)}
 .pdf-sheet h1{font-family:var(--f-display);font-size:24px;margin:0 0 4px;color:#0d4f45}
 .pdf-sheet p{margin:0 0 18px;color:#555;font-size:14px}
@@ -1181,9 +1246,9 @@ function renderChips() {
   const gs = GENDERS;
   const any = S.fw || S.fg || S.fp || S.q;
   el.innerHTML = (any ? `<button class="chip" data-act="clearf" style="border-color:var(--accent);color:var(--accent)">${ic('x', 14, 2)} إزالة كل الفلاتر</button>` : '')
-    + `<button class="chip ${!S.fw ? 'on' : ''}" data-act="fw" data-v="">كل الولايات <span class="n">${S.schools.length}</span></button>`
+    + (S.q.trim() ? `<button class="chip ${!S.fw ? 'on' : ''}" data-act="fw" data-v="">كل الولايات <span class="n">${S.schools.length}</span></button>`
     + ws.map(w => `<button class="chip ${S.fw === w ? 'on' : ''}" data-act="fw" data-v="${esc(w)}">${esc(w || 'بدون ولاية')} <span class="n">${counts.get(w)}</span></button>`).join('')
-    + `<span class="chip-sep"></span>` + gs.map(g => `<button class="chip ${S.fg === g ? 'on' : ''}" data-act="fg" data-v="${g}"><i style="width:9px;height:9px;border-radius:50%;background:var(--${genderTone(g)})"></i>${g}</button>`).join('')
+    + `<span class="chip-sep"></span>` : '') + gs.map(g => `<button class="chip ${S.fg === g ? 'on' : ''}" data-act="fg" data-v="${g}"><i style="width:9px;height:9px;border-radius:50%;background:var(--${genderTone(g)})"></i>${g}</button>`).join('')
     + `<span class="chip-sep"></span>` + PERIODS.map(p => `<button class="chip ${S.fp === p ? 'on' : ''}" data-act="fp" data-v="${p}">${p}</button>`).join('');
 }
 function tile(s) {
@@ -1201,6 +1266,7 @@ function renderGrid(animate = true) {
     animateGrid(g, animate);
     return;
   }
+  if (!S.q.trim()) { renderWheel(g); return; }   // browsing: one page per wilayah; searching: results from every wilayah
   const list = filtered();
   if (!list.length) {
     g.innerHTML = `<div class="empty"><span class="e-icon">${ic('search', 36)}</span><h3>لا توجد نتائج</h3><p>لا توجد مدرسة تطابق كل الفلاتر المختارة معاً${S.fg || S.fp ? ` (${[S.fw, S.fg, S.fp].filter(Boolean).join(' + ')})` : ''}.</p><button class="btn primary" data-act="clearf">${ic('school', 18)} عرض كل المدارس</button></div>`;
@@ -1212,6 +1278,159 @@ function renderGrid(animate = true) {
   g.innerHTML = `<div class="legend" style="padding-block:4px 6px"><span><i style="background:var(--mixed)"></i>مشترك</span><span><i style="background:var(--boys)"></i>ذكور</span><span><i style="background:var(--girls)"></i>إناث</span></div>`
     + [...groups].map(([w, arr]) => `<section class="group"><h2 class="group-h"><span>${esc(w)}</span><span class="cnt">${arr.length}</span></h2><div class="tiles">${arr.map(tile).join('')}</div></section>`).join('');
   animateGrid(g, animate);
+}
+
+/* ================= home wheel: one glass page per wilayah on a turning cylinder, picked with a luggage-lock style drum ================= */
+const WL_KEY = 'schools-guide:wilayah';
+const CW = { names: [], pos: 0, target: 0, raf: 0, last: 0, drag: null, dragged: 0, acc: 0, accT: 0, Wp: 0, ro: null, seen: -1 };
+const wlName = w => w || 'بدون ولاية';
+const wlSmall = () => window.innerWidth < 760;
+function wlGeo() {
+  const small = wlSmall();
+  return { h: small ? 38 : 46, a: small ? 26 : 19, b: 52 };
+}
+function renderWheel(g) {
+  const names = [...new Set(S.schools.map(s => s.wilayah || ''))].sort((a, b) => a.localeCompare(b, 'ar'));
+  const prevName = CW.names[Math.round(CW.target)] ?? lsGet(WL_KEY) ?? '';
+  CW.names = names;
+  let i0 = names.indexOf(S.fw || prevName); if (S.fw) S.fw = '';
+  if (i0 < 0) i0 = Math.min(Math.max(0, Math.round(CW.target)), names.length - 1);
+  CW.pos = CW.target = i0; CW.seen = -1;
+  const base = S.schools.filter(s => (!S.fg || s.gender === S.fg) && (!S.fp || s.period === S.fp));
+  const by = new Map(names.map(n => [n, []])); base.forEach(s => by.get(s.wilayah || '')?.push(s));
+  const pages = names.map((w, i) => { const arr = by.get(w);
+    return `<section class="wpage" data-wi="${i}" aria-label="${esc(wlName(w))}"><div class="wpage-glass">
+      <header class="wpage-h"><span class="wpage-ic">${ic('map', 18)}</span><h2>${esc(wlName(w))}</h2><span class="wpage-n">${arr.length.toLocaleString('ar-OM')} مدرسة</span></header>
+      <div class="wpage-body" data-lenis-prevent>${arr.length ? `<div class="tiles">${arr.map(tile).join('')}</div>`
+        : `<div class="empty" style="padding:40px 12px"><span class="e-icon">${ic('search', 30)}</span><p>لا توجد مدارس في ${esc(wlName(w))} تطابق الفلاتر المختارة.</p><button class="btn sm" data-act="clearf">إزالة الفلاتر</button></div>`}</div></div></section>`; }).join('');
+  g.innerHTML = `<div class="wheel" dir="rtl">
+    <div class="wl-side"><div class="wl-drum" tabindex="0" role="listbox" aria-label="اختر الولاية" data-lenis-prevent>
+      <div class="wl-cyl">${names.map((w, i) => `<button class="wl-item" data-wi="${i}" role="option" tabindex="-1"><span class="wl-t">${esc(wlName(w))}</span><span class="wl-c">${(by.get(w).length).toLocaleString('ar-OM')}</span></button>`).join('')}</div>
+      <div class="wl-shade" aria-hidden="true"></div><div class="wl-lens" aria-hidden="true"></div></div>
+      <div class="wl-hint">${ic('chevUp', 14)} مرّر الحلقة لاختيار الولاية ${ic('chevDown', 14)}</div></div>
+    <div class="wl-stage">
+      <div class="wl-view"><div class="wl-ring">${pages}</div></div>
+      <div class="wl-nav"><button class="icon-btn" data-wl="prev" aria-label="الولاية السابقة">${ic('back', 18)}</button><span class="wl-ind" aria-live="polite"></span><button class="icon-btn" data-wl="next" aria-label="الولاية التالية">${ic('arrowL', 18)}</button></div>
+    </div></div>`;
+  $$('.wpage .tiles', g).forEach(t => [...t.children].forEach((el, k) => el.style.setProperty('--k', Math.min(k, 24))));
+  wlWire(g.querySelector('.wheel'));
+  wlLayout(); wlApply(); wlSettled();
+}
+function wlLayout() {
+  const v = $('.wl-view'); if (!v) return;
+  CW.Wp = v.clientWidth;
+  const { h, a } = wlGeo(), r = h / (2 * Math.tan(a * Math.PI / 360));
+  const cyl = $('.wl-cyl'); if (cyl) cyl.style.transform = `translateZ(${-r}px)`;
+  CW.r = r;
+}
+function wlApply() {
+  const { a, b } = wlGeo(), pos = CW.pos, r = CW.r || 120;
+  $$('.wl-item').forEach(el => {
+    const d = +el.dataset.wi - pos, ang = d * a;
+    const show = Math.abs(ang) < 88;
+    el.style.visibility = show ? '' : 'hidden';
+    if (!show) return;
+    el.style.transform = `rotateX(${-ang}deg) translateZ(${r}px)`;
+    el.style.opacity = (0.3 + 0.7 * Math.cos(ang * Math.PI / 180)).toFixed(3);
+    el.classList.toggle('on', Math.abs(d) < 0.5);
+  });
+  const W = CW.Wp || 800, R = (W / 2) / Math.tan(b * Math.PI / 360);
+  const ring = $('.wl-ring'); if (ring) ring.style.transform = `translateZ(${-R}px)`;
+  $$('.wpage').forEach(el => {
+    const d = +el.dataset.wi - pos, show = Math.abs(d) < 1.6;
+    el.style.visibility = show ? '' : 'hidden';
+    if (!show) return;
+    el.style.transform = `rotateY(${-d * b}deg) translateZ(${R}px)`;
+    el.style.setProperty('--dim', Math.min(1, Math.abs(d)).toFixed(3));
+    el.classList.toggle('cur', Math.abs(d) < 0.5);
+  });
+}
+function wlTick(t) {
+  CW.raf = 0;
+  if (CW.drag) return;
+  const dt = Math.min(0.05, (t - (CW.last || t)) / 1000) || 0.016; CW.last = t;
+  const d = CW.target - CW.pos;
+  if (Math.abs(d) < 0.004 || reducedMotion) { CW.pos = CW.target; wlApply(); wlSettled(); return; }
+  CW.pos += d * (1 - Math.exp(-dt * 9));
+  wlApply();
+  CW.raf = requestAnimationFrame(wlTick);
+}
+function wlRun() { if (!CW.raf) { CW.last = 0; CW.raf = requestAnimationFrame(wlTick); } }
+function wlGo(i, instant) {
+  const n = CW.names.length; if (!n) return;
+  i = Math.max(0, Math.min(n - 1, Math.round(i)));
+  if (S.focus) closeFocus();
+  CW.target = i;
+  if (instant) { CW.pos = i; wlApply(); wlSettled(); } else { wlSettled(); wlRun(); }
+}
+function wlSettled() {
+  const i = Math.round(CW.target), n = CW.names.length;
+  const ind = $('.wl-ind'); if (ind) ind.innerHTML = `<b>${esc(wlName(CW.names[i]))}</b> · ${(i + 1).toLocaleString('ar-OM')} من ${n.toLocaleString('ar-OM')}`;
+  $$('.wl-item').forEach(el => el.setAttribute('aria-selected', +el.dataset.wi === i));
+  const p = $('[data-wl="prev"]'), q = $('[data-wl="next"]'); if (p) p.disabled = i <= 0; if (q) q.disabled = i >= n - 1;
+  if (CW.pos !== CW.target) return;
+  lsSet(WL_KEY, CW.names[i] ?? '');
+  if (CW.seen !== i) { CW.seen = i; const pg = $(`.wpage[data-wi="${i}"]`); if (pg && !reducedMotion) { pg.classList.remove('in'); void pg.offsetWidth; pg.classList.add('in'); } }
+}
+function wlWire(root) {
+  const drum = root.querySelector('.wl-drum'), view = root.querySelector('.wl-view');
+  if (CW.ro) CW.ro.disconnect();
+  CW.ro = new ResizeObserver(() => { wlLayout(); wlApply(); }); CW.ro.observe(view);
+  /* drag: the drum vertically, the pages horizontally; both move the same position so they turn together */
+  const start = (e, axis) => { if (e.button > 0) return; CW.drag = { axis, x: e.clientX, y: e.clientY, p0: CW.pos, live: false, pts: [[e.timeStamp, CW.pos]], id: e.pointerId, el: e.currentTarget }; };
+  const move = e => {
+    const D = CW.drag; if (!D || e.pointerId !== D.id) return;
+    const dx = e.clientX - D.x, dy = e.clientY - D.y;
+    if (!D.live) {
+      if (D.axis === 'x' ? Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy) : Math.abs(dy) < 5) { if (D.axis === 'x' && Math.abs(dy) > 10) CW.drag = null; return; }
+      D.live = true; try { D.el.setPointerCapture(D.id); } catch {} if (S.focus) closeFocus(); root.classList.add('dragging');
+    }
+    const n = CW.names.length, raw = D.axis === 'x' ? D.p0 - dx / Math.max(240, CW.Wp * 0.85) : D.p0 - dy / wlGeo().h;
+    CW.pos = raw < 0 ? raw / 3 : raw > n - 1 ? n - 1 + (raw - n + 1) / 3 : raw;
+    D.pts.push([e.timeStamp, CW.pos]); if (D.pts.length > 6) D.pts.shift();
+    wlApply();
+  };
+  const end = e => {
+    const D = CW.drag; if (!D || e.pointerId !== D.id) return;
+    CW.drag = null; root.classList.remove('dragging');
+    if (!D.live) return;
+    CW.dragged = Date.now();
+    const [t0, p0] = D.pts[0], [t1, p1] = D.pts[D.pts.length - 1], vel = t1 > t0 ? (p1 - p0) / (t1 - t0) * 1000 : 0;
+    const v = Number.isFinite(vel) ? Math.max(-8, Math.min(8, vel)) : 0;
+    if (D.axis === 'x') {   /* pages: a fifth of a page or a quick flick turns exactly one page, like the iPhone home screen */
+      const home = Math.round(D.p0), moved = CW.pos - home, dir = Math.abs(v) > 0.7 ? Math.sign(v) : Math.abs(moved) > 0.18 ? Math.sign(moved) : 0;
+      wlGo(home + dir);
+    } else wlGo(Math.round(CW.pos + v * 0.08));
+  };
+  drum.addEventListener('pointerdown', e => start(e, 'y'));
+  view.addEventListener('pointerdown', e => start(e, 'x'));
+  [drum, view].forEach(el => { el.addEventListener('pointermove', move); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); });
+  root.addEventListener('click', e => {
+    if (Date.now() - CW.dragged < 350) { e.stopPropagation(); e.preventDefault(); return; }
+    const it = e.target.closest('.wl-item'); if (it) { wlGo(+it.dataset.wi); return; }
+    const nav = e.target.closest('[data-wl]'); if (nav) { wlGo(Math.round(CW.target) + (nav.dataset.wl === 'next' ? 1 : -1)); return; }
+    const pg = e.target.closest('.wpage'); if (pg && +pg.dataset.wi !== Math.round(CW.target)) { e.stopPropagation(); e.preventDefault(); wlGo(+pg.dataset.wi); }
+  }, true);
+  /* wheel / trackpad: notches over the drum, sideways swipes over the pages */
+  const step = (delta, unit) => {
+    const now = performance.now(); if (now - CW.accT > 260) CW.acc = 0; CW.accT = now;
+    CW.acc += delta; if (Math.abs(CW.acc) < unit) return;
+    const k = Math.sign(CW.acc); CW.acc = 0; wlGo(Math.round(CW.target) + k);
+  };
+  drum.addEventListener('wheel', e => { e.preventDefault(); step(e.deltaY, 40); }, { passive: false });
+  view.addEventListener('wheel', e => { const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? -e.deltaX : e.shiftKey ? e.deltaY : 0; if (!dx) return; e.preventDefault(); step(dx, 70); }, { passive: false });
+  drum.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); wlGo(Math.round(CW.target) + (e.key === 'ArrowDown' ? 1 : -1)); } else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); wlGo(e.key === 'Home' ? 0 : CW.names.length - 1); } });
+}
+document.addEventListener('keydown', e => {
+  if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !$('.wheel') || S.view !== 'home' || S.focus || S.sheet || S.panel || S.side) return;
+  if ($('#dialogs').children.length || $('.mm-full') || $('.lightbox') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
+  e.preventDefault(); wlGo(Math.round(CW.target) + (e.key === 'ArrowLeft' ? 1 : -1));
+});
+/* brings a school's page to the front (used when returning from a school or the statistics panel) */
+function wlReveal(code) {
+  const s = getSchool(code); if (!s || !$('.wheel')) return;
+  const i = CW.names.indexOf(s.wilayah || ''); if (i >= 0) wlGo(i, true);
+  const t = $(`.wpage[data-wi="${i}"] .tile[data-code="${CSS.escape(String(code))}"]`); if (t) t.scrollIntoView({ block: 'nearest' });
 }
 
 /* ================= school / orbit ================= */
@@ -1606,7 +1825,7 @@ document.addEventListener('contextmenu', e => {
 const longPressed = () => Date.now() - lpFired < 900;
 
 function backToSchool(code) {
-  goHome();
+  goHome(); wlReveal(code);
   const tile = $(`.tile[data-code="${CSS.escape(String(code))}"]`);
   if (!tile) return;
   tile.scrollIntoView({ block: 'center' });
