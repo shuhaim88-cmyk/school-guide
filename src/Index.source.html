@@ -118,6 +118,8 @@ textarea.input{resize:vertical;min-height:120px;line-height:1.7}
 .brand-mark{width:38px;height:38px;flex:none}
 .brand b{font-family:var(--f-display);font-weight:700;font-size:18px;display:block;line-height:1.2}
 .brand small{color:var(--muted);font-size:12px}
+@media (max-width:480px){.topbar .wrap{gap:6px}.topbar .icon-btn{width:36px;height:36px;border-radius:10px}.brand>span{display:none}}
+html,body{overflow-x:clip}
 .spacer{flex:1}
 .user-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 6px 4px 12px}
 .user-chip:hover{border-color:var(--accent)}
@@ -386,7 +388,7 @@ tr:last-child td{border-bottom:0}
   .home-head{align-items:flex-start}
   .tiles{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
   .badge{width:64px;height:64px}
-  .sheet{width:100%}
+
 }
 /* ---------- bulk entry & table items ---------- */
 .info-table td,.info-table th{white-space:normal;vertical-align:top;padding:7px 9px;font-size:12.5px;overflow-wrap:normal;word-break:normal}
@@ -459,6 +461,40 @@ tr:last-child td{border-bottom:0}
 .rp-acts{display:flex;gap:4px;align-items:center}
 @keyframes popIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.rp-ic,.rem-pop{animation:none}}
+/* ---------- info view: a centered, roomy window (full screen on phones) so the information is the focus ---------- */
+#sheetHost .scrim{backdrop-filter:blur(4px) saturate(.7);-webkit-backdrop-filter:blur(4px) saturate(.7);background:color-mix(in srgb,var(--ink) 45%,transparent)}
+.sheet{inset:24px;width:auto;margin:auto;max-width:1200px;border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:0 30px 80px -20px rgba(0,0,0,.45);animation:sheetIn .3s cubic-bezier(.2,.9,.3,1) both}
+@keyframes sheetIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+.sheet-head{padding:18px 24px 14px}
+.sheet-head h2{font-size:21px}
+.sheet-actions{padding:12px 24px}
+.sheet-body{padding:22px 24px 48px;gap:18px;align-items:stretch}
+.sheet-body>*{width:100%;max-width:1100px;margin-inline:auto}
+.sheet .item{padding:18px 20px;border-radius:18px}
+.sheet .item-top b{font-size:17px}
+.sheet .item-top .k{width:30px;height:30px}
+.sheet .item-text{font-size:16px;line-height:1.95}
+.sheet .item-img,.sheet .item-img img{max-height:min(72vh,900px)}
+.sheet .item-img{min-height:200px}
+.sheet .mm-scroll{max-height:min(72vh,900px)}
+.sheet .table-wrap{max-height:min(68vh,820px);overflow:auto}
+.sheet .info-table{width:100%;min-width:max-content}
+.sheet .info-table td,.sheet .info-table th{font-size:14.5px;padding:10px 12px}
+.sheet .info-table thead th{position:sticky;top:0;z-index:1;background:var(--surface-2);box-shadow:0 1px 0 var(--line)}
+.sheet .info-table td:first-child,.sheet .info-table th:first-child{position:sticky;inset-inline-start:0;background:var(--surface);z-index:1;font-weight:600}
+.sheet .info-table thead th:first-child{z-index:2;background:var(--surface-2)}
+@media (max-width:760px){
+  .sheet{inset:0;max-width:none;border-radius:0;border:0}
+  .sheet-head{padding:14px 16px 12px;padding-top:max(14px,env(safe-area-inset-top,0px))}
+  .sheet-head h2{font-size:18px}
+  .sheet-actions{padding:10px 16px;overflow-x:auto;flex-wrap:nowrap}
+  .sheet-actions .btn{flex:none}
+  .sheet-body{padding:14px 12px 40px;gap:14px}
+  .sheet .item{padding:14px 14px}
+  .sheet .item-text{font-size:15.5px}
+  .sheet .info-table td,.sheet .info-table th{font-size:13.5px;padding:8px 10px}
+  .sheet .item-img,.sheet .item-img img{max-height:65vh}
+}
 .pdf-sheet{position:fixed;left:-20000px;top:0;width:max-content;max-width:3000px;min-width:720px;background:#fff;color:#111;padding:36px 40px;font-family:var(--f-body)}
 .pdf-sheet h1{font-family:var(--f-display);font-size:24px;margin:0 0 4px;color:#0d4f45}
 .pdf-sheet p{margin:0 0 18px;color:#555;font-size:14px}
