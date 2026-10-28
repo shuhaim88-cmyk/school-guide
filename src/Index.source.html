@@ -1171,7 +1171,7 @@ function goHome() {
       <div class="chips" id="chips"></div>
     </div>
     <div id="grid"></div></div>`;
-  $('#q').addEventListener('input', e => { const had = !!S.q; S.q = e.target.value; renderGrid(false); if (had !== !!S.q) renderChips(); });
+  $('#q').addEventListener('input', e => { const had = !!S.q; S.q = e.target.value; renderGrid(false); renderChips(); });
   renderStats(); renderChips(); renderGrid();
   scrollToTop();
   animateHomeIntro();
@@ -1245,11 +1245,18 @@ function renderChips() {
   const ws = [...counts.keys()].sort((a, b) => a.localeCompare(b, 'ar'));
   const gs = GENDERS;
   const any = S.fw || S.fg || S.fp || S.q;
+  /* gender / period counts: for the wilayah on screen (or the search results), each one respecting the other filter */
+  const q = norm(S.q.trim()), wheel = !q && CW.names.length && $('.wheel');
+  const scope = S.schools.filter(s => wheel ? (s.wilayah || '') === CW.names[Math.round(CW.target)] : (!S.fw || s.wilayah === S.fw) && (!q || norm(s.name).includes(q) || norm(s.code).includes(q)));
+  const nG = g => scope.filter(s => s.gender === g && (!S.fp || s.period === S.fp)).length, nP = p => scope.filter(s => s.period === p && (!S.fg || s.gender === S.fg)).length;
+  const num = n => `<span class="n">${n.toLocaleString('ar-OM')}</span>`;
+  const keep = el.scrollLeft;
   el.innerHTML = (any ? `<button class="chip" data-act="clearf" style="border-color:var(--accent);color:var(--accent)">${ic('x', 14, 2)} إزالة كل الفلاتر</button>` : '')
-    + (S.q.trim() ? `<button class="chip ${!S.fw ? 'on' : ''}" data-act="fw" data-v="">كل الولايات <span class="n">${S.schools.length}</span></button>`
-    + ws.map(w => `<button class="chip ${S.fw === w ? 'on' : ''}" data-act="fw" data-v="${esc(w)}">${esc(w || 'بدون ولاية')} <span class="n">${counts.get(w)}</span></button>`).join('')
-    + `<span class="chip-sep"></span>` : '') + gs.map(g => `<button class="chip ${S.fg === g ? 'on' : ''}" data-act="fg" data-v="${g}"><i style="width:9px;height:9px;border-radius:50%;background:var(--${genderTone(g)})"></i>${g}</button>`).join('')
-    + `<span class="chip-sep"></span>` + PERIODS.map(p => `<button class="chip ${S.fp === p ? 'on' : ''}" data-act="fp" data-v="${p}">${p}</button>`).join('');
+    + (S.q.trim() ? `<button class="chip ${!S.fw ? 'on' : ''}" data-act="fw" data-v="">كل الولايات ${num(S.schools.length)}</button>`
+    + ws.map(w => `<button class="chip ${S.fw === w ? 'on' : ''}" data-act="fw" data-v="${esc(w)}">${esc(w || 'بدون ولاية')} ${num(counts.get(w))}</button>`).join('')
+    + `<span class="chip-sep"></span>` : '') + gs.map(g => `<button class="chip ${S.fg === g ? 'on' : ''}" data-act="fg" data-v="${g}"><i style="width:9px;height:9px;border-radius:50%;background:var(--${genderTone(g)})"></i>${g} ${num(nG(g))}</button>`).join('')
+    + `<span class="chip-sep"></span>` + PERIODS.map(p => `<button class="chip ${S.fp === p ? 'on' : ''}" data-act="fp" data-v="${p}">${p} ${num(nP(p))}</button>`).join('');
+  el.scrollLeft = keep;
 }
 function tile(s) {
   const t = genderTone(s.gender);
@@ -1295,7 +1302,7 @@ function renderWheel(g) {
   CW.names = names;
   let i0 = names.indexOf(S.fw || prevName); if (S.fw) S.fw = '';
   if (i0 < 0) i0 = Math.min(Math.max(0, Math.round(CW.target)), names.length - 1);
-  CW.pos = CW.target = i0; CW.seen = -1;
+  CW.pos = CW.target = i0; CW.seen = -1; CW.chipsFor = -1;
   const base = S.schools.filter(s => (!S.fg || s.gender === S.fg) && (!S.fp || s.period === S.fp));
   const by = new Map(names.map(n => [n, []])); base.forEach(s => by.get(s.wilayah || '')?.push(s));
   const pages = names.map((w, i) => { const arr = by.get(w);
@@ -1367,6 +1374,7 @@ function wlSettled() {
   const i = Math.round(CW.target), n = CW.names.length;
   const ind = $('.wl-ind'); if (ind) ind.innerHTML = `<b>${esc(wlName(CW.names[i]))}</b> · ${(i + 1).toLocaleString('ar-OM')} من ${n.toLocaleString('ar-OM')}`;
   $$('.wl-item').forEach(el => el.setAttribute('aria-selected', +el.dataset.wi === i));
+  if (CW.chipsFor !== i) { CW.chipsFor = i; renderChips(); }
   const p = $('[data-wl="prev"]'), q = $('[data-wl="next"]'); if (p) p.disabled = i <= 0; if (q) q.disabled = i >= n - 1;
   if (CW.pos !== CW.target) return;
   lsSet(WL_KEY, CW.names[i] ?? '');
