@@ -605,6 +605,14 @@ tr:last-child td{border-bottom:0}
 .wtile:hover{background:color-mix(in srgb,var(--wl-soft) 85%,transparent);border-color:color-mix(in srgb,var(--wl) 55%,transparent)}
 .bk-target{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:13.5px;color:var(--muted)}
 .bk-target .seg button{display:inline-flex;gap:6px;align-items:center}
+/* ---------- offline downloads ---------- */
+.off-list{max-height:min(46vh,460px);overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.off-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.off-row:last-child{border-bottom:0}
+.off-row:hover{background:var(--surface-2)}
+.off-row small{color:var(--muted);font-size:12px}
+.off-row input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.dev-pill{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 9px}
 .pdf-sheet{position:fixed;left:-20000px;top:0;width:max-content;max-width:3000px;min-width:720px;background:#fff;color:#111;padding:36px 40px;font-family:var(--f-body)}
 .pdf-sheet h1{font-family:var(--f-display);font-size:24px;margin:0 0 4px;color:#0d4f45}
 .pdf-sheet p{margin:0 0 18px;color:#555;font-size:14px}
@@ -832,6 +840,10 @@ const P = {
   clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
   rotate:'<path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  cloud:'<path d="M7 18.5h10a4.5 4.5 0 00.6-8.96A6 6 0 006.2 10.1 4.2 4.2 0 007 18.5z"/><path d="M12 10.5v5.5M9.5 13.8l2.5 2.5 2.5-2.5"/>',
+  cloudOff:'<path d="M7 18.5h10a4.5 4.5 0 00.6-8.96A6 6 0 006.2 10.1 4.2 4.2 0 007 18.5z"/><path d="M4 4l16 16"/>',
+  wifi:'<path d="M2.5 9a14 14 0 0119 0M5.5 12.5a9.5 9.5 0 0113 0M8.7 16a5 5 0 016.6 0"/><circle cx="12" cy="19.3" r="1"/>',
+  signal:'<path d="M5 20v-3M9.5 20v-6.5M14 20V10M18.5 20V5.5"/>',
   expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'
 };
 const PICKABLE = ['clipboard','table','layers','doc','folder','chart','map','building','desk','tools','key','bolt','water','bus','shield','calendar','people','id','user','book','star','flask','laptop','ball'];
@@ -960,7 +972,14 @@ async function boot() {
   S.token = lsGet(TOKEN_KEY);
   try {
     if (S.token) {
-      try { applyBoot(await api('apiBootstrap', S.token)); }
+      const fresh = api('apiBootstrap', S.token), cached = await idbGet('meta', 'boot:' + S.token);
+      if (cached) {   /* open at once with the data saved on this device, then bring it up to date */
+        applyBoot(cached); S.loaded = true; route(); offLoadList();
+        fresh.then(d => { applyBoot(d); idbPut('meta', 'boot:' + S.token, d).catch(() => {}); renderTop(); rerenderData(); offCheck(); })
+          .catch(e => { if (errCode(e) === 'AUTH') { idbDel('meta', 'boot:' + S.token); reportErr(e); } else toast('لا يوجد اتصال الآن. تُعرض البيانات المحفوظة على الجهاز.'); });
+        return;
+      }
+      try { const d = await fresh; applyBoot(d); idbPut('meta', 'boot:' + S.token, d).catch(() => {}); offLoadList().then(offCheck); }
       catch (e) { if (errCode(e) !== 'AUTH') throw e; S.token = null; lsSet(TOKEN_KEY, null); }
     }
     if (!S.me) S.needsSetup = (await api('apiStatus')).needsSetup;
@@ -988,7 +1007,8 @@ function rerenderData() {
 }
 async function refresh() {
   try {
-    const was = applyBoot(await api('apiBootstrap', S.token));
+    const d = await api('apiBootstrap', S.token), was = applyBoot(d);
+    idbPut('meta', 'boot:' + S.token, d).catch(() => {});
     if (!was || was.role !== S.me.role || JSON.stringify(was.hidden || []) !== JSON.stringify(S.me.hidden || [])) route();
     else { renderTop(); rerenderData(); }
     if (S.side === 'inbox') loadNotes(); else if (S.side === 'stats') loadStats();
@@ -1181,6 +1201,7 @@ function renderTop() {
     ${themeBtn()}
     ${can('edit') ? `<button class="icon-btn" data-act="inbox" title="الملاحظات" aria-label="الملاحظات${S.unread ? ` (${S.unread} غير مقروءة)` : ''}">${ic('inbox', 20)}${S.unread ? `<span class="nbadge">${S.unread > 99 ? '99+' : S.unread}</span>` : ''}</button>` : ''}
  ${can('edit') ? `<button class="icon-btn" data-act="bulk" title="إدخال جماعي للمدارس" aria-label="إدخال جماعي للمدارس">${ic('upload', 20)}</button>` : ''}
+    <button class="icon-btn" data-act="offline" title="التنزيل للعمل دون شبكة" aria-label="التنزيل للعمل دون شبكة${OFF.list.some(offStale) ? ' (توجد معلومات جديدة)' : ''}">${ic(navigator.onLine ? 'cloud' : 'cloudOff', 20)}${OFF.list.some(offStale) ? `<span class="nbadge">${OFF.list.filter(offStale).length.toLocaleString('ar-OM')}</span>` : ''}</button>
     ${S.me.role !== 'school' ? `<button class="icon-btn" data-act="stats" title="الإحصائيات" aria-label="الإحصائيات">${ic('stats', 20)}</button>` : ''}
     ${can('admin') ? `<button class="icon-btn" data-act="settings" title="الإعدادات" aria-label="الإعدادات">${ic('gear', 20)}</button>` : ''}
     <button class="user-chip" data-act="usermenu" aria-label="حسابي"><span class="u-name">${esc(S.me.name)}</span><span class="avatar">${esc(initials(S.me.name))}</span></button>`;
@@ -1489,6 +1510,178 @@ function wlReveal(code) {
   const t = $(`.wpage[data-wi="${i}"] .tile[data-code="${CSS.escape(String(code))}"]`); if (t) t.scrollIntoView({ block: 'nearest' });
 }
 
+/* ================= offline: chosen schools are kept on this device (inside the app only) =================
+ * IndexedDB stores: schools  → `${userId}|${code}` : { code, info, sig, at, keys, bytes }
+ *                   blobs    → 'f:<fileId>' file, 'p:<itemId>:<i>' preview page : { blob, mime, name }
+ *                   meta     → 'boot:<token>' last start-up data, 'opts' download settings
+ * Nothing here touches Google Drive: deleting only frees this device. */
+const OFF = { dbp: null, list: [], sigs: {}, job: null, opts: lsGet('schools-guide:offline-opts') || { net: 'wifi' }, pick: new Set(), q: '', w: '', est: null };
+function idb() {
+  return OFF.dbp || (OFF.dbp = new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error('NO_IDB'));
+    const r = indexedDB.open('schools-guide-offline', 1);
+    r.onupgradeneeded = () => { const d = r.result; ['schools', 'blobs', 'meta'].forEach(n => { if (!d.objectStoreNames.contains(n)) d.createObjectStore(n); }); };
+    r.onsuccess = () => res(r.result); r.onerror = () => { OFF.dbp = null; rej(r.error); };
+  }));
+}
+async function idbDo(store, mode, fn) {
+  const d = await idb();
+  return new Promise((res, rej) => { const tx = d.transaction(store, mode), st = tx.objectStore(store), rq = fn(st); tx.oncomplete = () => res(rq && rq.result); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); });
+}
+const idbGet = (s, k) => idbDo(s, 'readonly', st => st.get(k)).catch(() => undefined);
+const idbPut = (s, k, v) => idbDo(s, 'readwrite', st => st.put(v, k));
+const idbDel = (s, k) => idbDo(s, 'readwrite', st => st.delete(k)).catch(() => {});
+const idbKeys = s => idbDo(s, 'readonly', st => st.getAllKeys()).catch(() => []);
+const offKey = code => `${S.me ? S.me.id || S.me.school : ''}|${code}`;
+const offName = code => { const s = getSchool(code); return s ? s.name : code; };
+async function offLoadList() {
+  const mine = (await idbKeys('schools')).filter(k => String(k).startsWith(offKey('')));
+  OFF.list = (await Promise.all(mine.map(k => idbGet('schools', k)))).filter(Boolean).sort((a, b) => offName(a.code).localeCompare(offName(b.code), 'ar'));
+  try { OFF.est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null; } catch { OFF.est = null; }
+  renderTop(); if (S.side === 'offline') renderSide();
+}
+const offHas = code => OFF.list.find(x => x.code === String(code));
+const offStale = x => OFF.sigs[x.code] && OFF.sigs[x.code] !== x.sig;
+async function offCheck() {
+  if (!OFF.list.length || !navigator.onLine) return;
+  try { OFF.sigs = await api('apiInfoSig', S.token, OFF.list.map(x => x.code)); } catch { return; }
+  renderTop(); if (S.side === 'offline') renderSide();
+}
+
+/* ---- network choice: Wi-Fi only, or Wi-Fi and mobile data ---- */
+function netState() {
+  const c = navigator.connection, t = c && c.type;
+  if (!navigator.onLine) return 'none';
+  if (t === 'wifi' || t === 'ethernet') return 'wifi';
+  if (t === 'cellular' || t === 'wimax') return 'cell';
+  return 'unknown';   /* e.g. iPhone: the browser does not tell */
+}
+async function netOk() {
+  const n = netState();
+  if (n === 'none') { toast('لا يوجد اتصال بالشبكة الآن.'); return false; }
+  if (OFF.opts.net !== 'wifi' || n === 'wifi') return true;
+  if (n === 'cell') { toast('اخترت التنزيل بالواي فاي فقط، والجهاز متصل ببيانات الهاتف. اتصل بالواي فاي أو غيّر الخيار.'); return false; }
+  return confirmBox('اخترت التنزيل بالواي فاي فقط، والمتصفح في هذا الجهاز لا يُظهر نوع الاتصال. هل الجهاز متصل بالواي فاي الآن؟', 'نعم، متصل بالواي فاي');
+}
+
+/* ---- download / update: only what is missing is fetched; files no longer in the school are removed ---- */
+async function offDownload(codes, label) {
+  if (OFF.job) return toast('يوجد تنزيل قيد التنفيذ.');
+  if (!(await netOk())) return;
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+  const job = OFF.job = { codes: codes.slice(), i: 0, done: 0, total: 0, name: '', stop: false, failed: [] };
+  renderSide();
+  for (const code of codes) {
+    if (job.stop) break;
+    job.name = offName(code); job.done = 0; job.total = 0; renderOffJob();
+    try {
+      const old = await idbGet('schools', offKey(code));
+      const pack = await api('apiOfflinePack', S.token, code);
+      const items = Object.values(pack.info || {}).flatMap(v => v.items || []);
+      const want = [];
+      items.forEach(it => {
+        if (it.fileId) want.push({ key: 'f:' + it.fileId, get: () => api('apiGetFile', S.token, it.fileId), name: it.name });
+        if (it.preview) for (let i = 0; i < it.preview.n; i++) want.push({ key: `p:${it.id}:${i}`, get: () => api('apiGetPreview', S.token, it.id, i) });
+      });
+      const have = new Set(await idbKeys('blobs'));
+      const todo = want.filter(w => !have.has(w.key) || (old && !(old.keys || []).includes(w.key)));
+      job.total = todo.length; renderOffJob();
+      let bytes = 0;
+      for (const w of todo) {
+        if (job.stop) break;
+        if (OFF.opts.net === 'wifi' && netState() === 'cell') { job.stop = true; toast('توقف التنزيل: انتقل الجهاز إلى بيانات الهاتف.'); break; }
+        const r = await w.get(), blob = new Blob([fromB64(r.data)], { type: r.mime || 'application/octet-stream' });
+        await idbPut('blobs', w.key, { blob, mime: r.mime, name: w.name || r.name || '' });
+        job.done++; renderOffJob();
+      }
+      if (job.stop) break;
+      const keys = want.map(w => w.key);
+      for (const k of (old && old.keys) || []) if (!keys.includes(k)) await idbDel('blobs', k);
+      for (const k of keys) { const v = await idbGet('blobs', k); if (v && v.blob) bytes += v.blob.size; }
+      bytes += JSON.stringify(pack.info).length * 2;
+      await idbPut('schools', offKey(code), { code: String(code), info: pack.info, sig: pack.sig, at: Date.now(), keys, bytes, items: items.length });
+      OFF.sigs[code] = pack.sig;
+    } catch (e) { job.failed.push(offName(code)); }
+    job.i++;
+  }
+  const stopped = job.stop; OFF.job = null; OFF.pick.clear();
+  await offLoadList();
+  toast(stopped ? 'أُوقف التنزيل. ما اكتمل منه محفوظ.' : job.failed.length ? `تعذر تنزيل: ${job.failed.slice(0, 3).join('، ')}. تحقق من الاتصال وأعد المحاولة.` : `${label}: ${offCount(codes)} جاهزة دون شبكة`);
+}
+function renderOffJob() {
+  const el = $('#offJob'), j = OFF.job; if (!el || !j) return;
+  el.innerHTML = `<b>جارٍ التنزيل: ${esc(j.name)}</b> <span style="color:var(--muted)">(${(j.i + 1).toLocaleString('ar-OM')} من ${j.codes.length.toLocaleString('ar-OM')})</span>
+    <div class="bk-progress" style="margin-top:6px"><i style="width:${j.total ? Math.round(j.done / j.total * 100) : 5}%"></i></div>
+    <span style="font-size:12.5px;color:var(--muted)">${j.total ? `ملفات ${j.done.toLocaleString('ar-OM')} من ${j.total.toLocaleString('ar-OM')}` : 'جارٍ قراءة المعلومات…'}</span>`;
+}
+function offCount(codes) { const n = codes.filter(c => !isWCode(c)).length, w = codes.length - n; return [n ? `${n.toLocaleString('ar-OM')} ${n === 1 ? 'مدرسة' : 'مدارس'}` : '', w ? `${w === 1 ? 'المعلومات المشتركة لولاية' : `المعلومات المشتركة لـ ${w.toLocaleString('ar-OM')} ولايات`}` : ''].filter(Boolean).join(' و'); }
+async function offRemove(codes) {
+  for (const code of codes) {
+    const rec = await idbGet('schools', offKey(code)); if (!rec) continue;
+    for (const k of rec.keys || []) await idbDel('blobs', k);
+    await idbDel('schools', offKey(code));
+  }
+  await offLoadList();
+}
+
+/* ---- reading from the device first (used by information, files and previews) ---- */
+async function offBlob(key) { const v = await idbGet('blobs', key); return v && v.blob ? v : null; }
+async function offInfo(code) { const r = await idbGet('schools', offKey(code)); return r ? r.info : null; }
+
+/* ---- the panel ---- */
+const fmtBytes = b => b < 1048576 ? Math.max(1, Math.round(b / 1024)).toLocaleString('ar-OM') + ' ك.ب' : b < 1073741824 ? (b / 1048576).toLocaleString('ar-OM', { maximumFractionDigits: 1 }) + ' م.ب' : (b / 1073741824).toLocaleString('ar-OM', { maximumFractionDigits: 1 }) + ' ج.ب';
+function offlineBody() {
+  const on = new Set(OFF.list.map(x => x.code)), stale = OFF.list.filter(offStale), q = norm(OFF.q);
+  const ws = [...new Set(S.schools.map(s => s.wilayah).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ar'));
+  const cand = S.schools.filter(s => (!OFF.w || s.wilayah === OFF.w) && (!q || norm(s.name).includes(q) || norm(s.code).includes(q)));
+  const total = OFF.list.reduce((a, x) => a + (x.bytes || 0), 0);
+  const net = netState(), netLabel = { wifi: 'متصل بالواي فاي', cell: 'متصل ببيانات الهاتف', unknown: 'متصل (نوع الاتصال غير معروف)', none: 'غير متصل' }[net];
+  return `<div class="note">تُحفظ معلومات المدارس التي تختارها وملفاتها ومعايناتها داخل هذا الجهاز، فتظهر فوراً عند فتحها حتى لو كانت الشبكة بطيئة أو انقطعت. لا تُفتح هذه البيانات إلا من داخل التطبيق، وحذفها هنا لا يحذف شيئاً من Drive. <b>صفحة التطبيق نفسها تحتاج اتصالاً لتُفتح</b>، ثم تعمل المعلومات المنزّلة دون شبكة.</div>
+    <section class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="flex:1">طريقة التنزيل</h3><span class="sa-pill ${net === 'none' ? 'off' : 'ok'}">${netLabel}</span></div>
+      <div class="seg" role="radiogroup">${[['wifi', 'واي فاي فقط', 'wifi'], ['any', 'واي فاي وبيانات الهاتف', 'signal']].map(([k, l, i]) => `<button data-act="off-net" data-v="${k}" class="${OFF.opts.net === k ? 'on' : ''}" role="radio" aria-checked="${OFF.opts.net === k}">${ic(i, 15)} ${l}</button>`).join('')}</div></section>
+    ${OFF.job ? `<section class="card" id="offJob"></section><div><button class="btn sm danger" data-act="off-stop">${ic('x', 15)} إيقاف التنزيل</button></div>` : ''}
+    <section class="card"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="flex:1">المدارس المنزّلة على هذا الجهاز</h3>
+        <span style="color:var(--muted);font-size:13px">${offCount(OFF.list.map(x => x.code)) || 'لا شيء'} · ${fmtBytes(total)}${OFF.est && OFF.est.quota ? ` · المساحة المتاحة للتطبيق ${fmtBytes(Math.max(0, OFF.est.quota - (OFF.est.usage || 0)))}` : ''}</span></div>
+      ${OFF.list.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${stale.length ? `<button class="btn primary sm" data-act="off-upall" ${OFF.job ? 'disabled' : ''}>${ic('rotate', 15)} تحديث ${stale.length.toLocaleString('ar-OM')} فيها معلومات جديدة</button>` : `<span class="sa-pill ok">${ic('check', 13)} كل المدارس المنزّلة محدّثة</span>`}
+          <button class="btn sm" data-act="off-check">${ic('search', 15)} التحقق من وجود جديد</button><button class="btn sm danger" data-act="off-delall" ${OFF.job ? 'disabled' : ''}>${ic('trash', 15)} حذف الكل من الجهاز</button></div>
+        <div class="table-wrap"><table class="st-table"><thead><tr><th>المدرسة</th><th>آخر تنزيل</th><th class="num">الحجم</th><th>الحالة</th><th></th></tr></thead><tbody>
+        ${OFF.list.map(x => `<tr><td>${esc(offName(x.code))}${isWCode(x.code) ? '' : ` <span style="color:var(--muted);font-size:12px">${esc(x.code)}</span>`}</td><td style="font-size:12.5px">${fmtDT(x.at)}</td><td class="num">${fmtBytes(x.bytes || 0)}</td>
+          <td>${offStale(x) ? '<span class="sa-pill off">توجد معلومات جديدة</span>' : OFF.sigs[x.code] ? '<span class="sa-pill ok">محدّثة</span>' : '<span class="sa-pill">لم يُتحقق</span>'}</td>
+          <td style="white-space:nowrap"><button class="btn ghost sm" data-act="off-up" data-code="${esc(x.code)}" ${OFF.job ? 'disabled' : ''}>${ic('rotate', 14)} تحديث</button><button class="btn ghost sm danger" data-act="off-del" data-code="${esc(x.code)}" ${OFF.job ? 'disabled' : ''}>${ic('trash', 14)} حذف</button></td></tr>`).join('')}
+        </tbody></table></div>` : '<p class="d">لم تُنزّل أي مدرسة بعد. اختر المدارس من القائمة أدناه.</p>'}</section>
+    <section class="card"><h3>اختيار مدارس للتنزيل</h3>
+      <div class="row-flex"><div class="field" style="flex-basis:220px"><input class="input" id="offQ" data-off="q" placeholder="ابحث برمز المدرسة أو اسمها" value="${esc(OFF.q)}" autocomplete="off"></div>
+        <div class="field" style="flex-basis:180px"><select class="input" data-off="w"><option value="">كل الولايات</option>${ws.map(w => `<option ${OFF.w === w ? 'selected' : ''}>${esc(w)}</option>`).join('')}</select></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sm" data-act="off-all">${ic('check', 14)} تحديد الظاهرة (${cand.length.toLocaleString('ar-OM')})</button><button class="btn sm" data-act="off-none">إلغاء التحديد</button>
+        <span style="font-size:12.5px;color:var(--muted)">مع كل مدرسة تُنزَّل «المعلومات المشتركة» لولايتها.</span></div>
+      <div class="off-list" data-lenis-prevent>${cand.map(s => `<label class="off-row"><input type="checkbox" data-offpick="${esc(s.code)}" ${OFF.pick.has(String(s.code)) ? 'checked' : ''}><span>${esc(s.name)} <small>${esc(s.code)} · ${esc(s.wilayah || '')}</small></span>${on.has(String(s.code)) ? `<span class="sa-pill ok" style="margin-inline-start:auto">${ic('check', 12)} منزّلة</span>` : ''}</label>`).join('') || '<p class="d">لا توجد مدارس مطابقة.</p>'}</div>
+      <div><button class="btn primary" data-act="off-go" ${OFF.pick.size && !OFF.job ? '' : 'disabled'}>${ic('download', 17)} تنزيل ${OFF.pick.size.toLocaleString('ar-OM')} مدرسة إلى الجهاز</button></div></section>`;
+}
+function offPicked() {
+  const codes = [...OFF.pick], ws = new Set(codes.map(c => (getSchool(c) || {}).wilayah).filter(Boolean));
+  return codes.concat([...ws].map(w => W_PREFIX + w));
+}
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act^="off-"]'); if (!el) return;
+  const a = el.dataset.act, code = el.dataset.code;
+  if (a === 'off-net') { OFF.opts.net = el.dataset.v; lsSet('schools-guide:offline-opts', OFF.opts); renderSide(); }
+  else if (a === 'off-go') offDownload(offPicked(), 'اكتمل التنزيل');
+  else if (a === 'off-all') { const q = norm(OFF.q); S.schools.filter(s => (!OFF.w || s.wilayah === OFF.w) && (!q || norm(s.name).includes(q) || norm(s.code).includes(q))).forEach(s => OFF.pick.add(String(s.code))); renderSide(); }
+  else if (a === 'off-none') { OFF.pick.clear(); renderSide(); }
+  else if (a === 'off-up') offDownload([code], 'اكتمل التحديث');
+  else if (a === 'off-upall') offDownload(OFF.list.filter(offStale).map(x => x.code), 'اكتمل التحديث');
+  else if (a === 'off-check') { el.disabled = true; await offCheck(); toast(OFF.list.some(offStale) ? 'توجد معلومات جديدة لبعض المدارس.' : 'كل المدارس المنزّلة محدّثة.'); }
+  else if (a === 'off-stop') { if (OFF.job) OFF.job.stop = true; }
+  else if (a === 'off-del') { if (await confirmBox(`حذف «${offName(code)}» من هذا الجهاز؟ لا يُحذف شيء من Drive أو من التطبيق.`, 'حذف من الجهاز')) offRemove([code]); }
+  else if (a === 'off-delall') { if (await confirmBox('حذف كل المدارس المنزّلة من هذا الجهاز؟ لا يُحذف شيء من Drive أو من التطبيق.', 'حذف الكل من الجهاز')) offRemove(OFF.list.map(x => x.code)); }
+});
+document.addEventListener('change', e => {
+  const p = e.target.closest('[data-offpick]'); if (p) { p.checked ? OFF.pick.add(p.dataset.offpick) : OFF.pick.delete(p.dataset.offpick); const b = $('[data-act="off-go"]'); if (b) { b.disabled = !OFF.pick.size || !!OFF.job; b.innerHTML = `${ic('download', 17)} تنزيل ${OFF.pick.size.toLocaleString('ar-OM')} مدرسة إلى الجهاز`; } return; }
+  if (e.target.dataset.off === 'w') { OFF.w = e.target.value; renderSide(); }
+});
+document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.off === 'q') { OFF.q = e.target.value; clearTimeout(OFF.qt); OFF.qt = setTimeout(() => { renderSide(); const i = $('#offQ'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); } });
+['online', 'offline'].forEach(n => window.addEventListener(n, () => { renderTop(); if (S.side === 'offline') renderSide(); if (n === 'online') offCheck(); }));
+
 /* ================= school / orbit ================= */
 /* each wilayah has a fixed «المعلومات المشتركة» button: code W:<wilayah>, used like a school for sections and information */
 const W_PREFIX = 'W:';
@@ -1523,16 +1716,19 @@ const angleAt = (i, n, off = 0) => -Math.PI / 2 - (n === 2 ? Math.PI / 2 : 0) - 
 async function loadInfo(code) {
   code = String(code);
   if (S.infoCode !== code) { S.info = {}; S.infoCode = code; S.infoLoading = true; }
-  const req = ++S.infoReq;
+  const req = ++S.infoReq, saved = offHas(code);
+  const show = () => { if (S.view === 'school') renderOrbit(false); else if (S.focus) focusSchool(S.focus, false); if (S.sheet && !S.composing) renderSheet(); };
+  if (saved && S.infoLoading) {   /* downloaded school: show the copy on this device at once, then refresh from the network */
+    const oi = await offInfo(code);
+    if (oi && req === S.infoReq && S.infoCode === code && S.infoLoading) { S.info = oi; S.infoLoading = false; S.infoFromDevice = code; show(); }
+  }
   try {
-    const m = await call('apiGetInfo', code);
+    const m = await (saved ? api('apiGetInfo', S.token, code) : call('apiGetInfo', code));
     if (req !== S.infoReq || S.infoCode !== code) return;
-    S.info = m || {};
-  } catch { if (req !== S.infoReq) return; }
+    S.info = m || {}; if (S.infoFromDevice === code) S.infoFromDevice = null;
+  } catch (e) { if (req !== S.infoReq) return; if (saved && errCode(e) === 'AUTH') reportErr(e); }
   S.infoLoading = false;
-  if (S.view === 'school') renderOrbit(false);
-  else if (S.focus) focusSchool(S.focus, false);
-  if (S.sheet && !S.composing) renderSheet();
+  show();
 }
 function subscribeInfo(code) { if (S.infoCode !== String(code)) loadInfo(code); }
 function unsubInfo() { S.infoCode = null; S.infoReq++; S.infoLoading = false; }
@@ -2032,7 +2228,7 @@ function renderSheet() {
   $('#sheetHost').innerHTML = `<div class="scrim" data-act="closesheet"></div>
     <aside class="sheet" dir="rtl" role="dialog" aria-label="${esc(node.name)}" style="--tone:var(--${root.tone});--tone-soft:var(--${root.tone}-soft)">
       <div class="sheet-head"><span class="s-icon">${ic(node.icon || 'doc', 24)}</span>
-        <div style="flex:1;min-width:0"><h2>${esc(node.name)}</h2><small>${esc(s ? s.name : '')} · ${esc(trail)}</small></div>
+        <div style="flex:1;min-width:0"><h2>${esc(node.name)}</h2><small>${esc(s ? s.name : '')} · ${esc(trail)}</small>${S.infoFromDevice === String(S.school) ? `<span class="dev-pill">${ic('cloud', 13)} معروضة من الجهاز</span>` : ''}</div>
         <button class="icon-btn" data-act="closesheet" aria-label="إغلاق">${ic('x', 20)}</button></div>
       ${ed ? `<div class="sheet-actions">
         <button class="btn sm" data-act="add-text">${ic('text', 16)} نص</button>
@@ -2111,6 +2307,8 @@ function fromB64(b) { const s = atob(b); const u = new Uint8Array(s.length); for
 const fileCache = {};
 async function loadFile(id) {
   if (fileCache[id]) return fileCache[id];
+  const v = await offBlob('f:' + id);
+  if (v) return (fileCache[id] = { blob: v.blob, url: URL.createObjectURL(v.blob), mime: v.mime, name: v.name });
   const r = await call('apiGetFile', id);
   const blob = new Blob([fromB64(r.data)], { type: r.mime });
   return (fileCache[id] = { blob, url: URL.createObjectURL(blob), mime: r.mime, name: r.name });
@@ -2256,7 +2454,7 @@ async function hydratePreview(el) {
   el.dataset.state = 'done';
   if (src.k === 'text') { el.innerHTML = `<pre class="pv-text" data-lenis-prevent>${esc(src.text)}</pre>`; return; }
   if (src.k === 'sheets') {
-    const data = src.data || (PV.local[it.id] = { k: 'sheets', data: JSON.parse(new TextDecoder().decode(fromB64((await call('apiGetPreview', it.id, 0)).data))) }).data;
+    const data = src.data || (PV.local[it.id] = { k: 'sheets', data: JSON.parse(await (await pvFetch(it.id, 0)).blob.text()) }).data;
     el.innerHTML = pvSheetsHTML(it, data, false); return;
   }
   const n = src.urls ? src.urls.length : src.n, more = (src.total || n) > n;
@@ -2264,6 +2462,11 @@ async function hydratePreview(el) {
       <button class="btn ghost sm" data-pvact="full">${ic('expand', 14)} ملء الشاشة</button></div>
     <div class="pv-scroll" data-lenis-prevent>${pvPagesHTML(it.id, src)}</div>`;
   pvWatch(el.querySelector('.pv-scroll'), it.id);
+}
+async function pvFetch(id, i) {
+  const v = await offBlob(`p:${id}:${i}`); if (v) return v;
+  const r = await api('apiGetPreview', S.token, id, i);
+  return { blob: new Blob([fromB64(r.data)], { type: r.mime }), mime: r.mime };
 }
 const pvWait = t => `<div class="pv-msg"><span class="spin"></span>${t}</div>`;
 function pvPagesHTML(id, src) {
@@ -2276,7 +2479,7 @@ function pvWatch(scroller, id) {
   const load = i => {
     const pg = pages[i]; if (!pg || pg.querySelector('img') || pg.dataset.loading) return;
     pg.dataset.loading = '1';
-    api('apiGetPreview', S.token, id, i).then(r => { const u = PV.img[id + ':' + i] = URL.createObjectURL(new Blob([fromB64(r.data)], { type: r.mime })); pg.insertAdjacentHTML('afterbegin', `<img src="${u}" alt="صفحة ${i + 1}">`); pg.querySelector('.spin')?.remove(); })
+    pvFetch(id, i).then(r => { const u = PV.img[id + ':' + i] = URL.createObjectURL(r.blob); pg.insertAdjacentHTML('afterbegin', `<img src="${u}" alt="صفحة ${i + 1}">`); pg.querySelector('.spin')?.remove(); })
       .catch(() => { delete pg.dataset.loading; });
   };
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { const i = +e.target.dataset.i; load(i); load(i + 1); load(i + 2); } }), { root: scroller, rootMargin: '300px' });
@@ -2470,19 +2673,20 @@ function noteDialog(it) {
       catch { $('#noteMsg').textContent = ''; }
     } }]);
 }
-function openSide(kind) { $('.menu')?.remove(); closeFocus(); closeSheet(); S.panel = null; S.side = kind; if (kind === 'bulk') { S.bulk = S.bulk && !S.bulk.busy ? { ...S.bulk, result: null } : bulkInit(); renderSide(); return; } if (kind === 'inbox') { S.notes = null; renderSide(); loadNotes(); } else { S.stats = null; renderSide(); loadStats(); } }
+function openSide(kind) { $('.menu')?.remove(); closeFocus(); closeSheet(); S.panel = null; S.side = kind; if (kind === 'offline') { renderSide(); offLoadList().then(offCheck); return; } if (kind === 'bulk') { S.bulk = S.bulk && !S.bulk.busy ? { ...S.bulk, result: null } : bulkInit(); renderSide(); return; } if (kind === 'inbox') { S.notes = null; renderSide(); loadNotes(); } else { S.stats = null; renderSide(); loadStats(); } }
 function closeSide() { S.side = null; $('#overlay').innerHTML = ''; if (S.view === 'school') renderSchoolView(false); }
 function renderSide() {
   if (!S.side) return;
-  const inbox = S.side === 'inbox', bulk = S.side === 'bulk';
-  const body = inbox ? inboxBody() : bulk ? bulkBody() : statsBody();
-  const title = inbox ? 'الملاحظات' : bulk ? 'إدخال جماعي للمدارس' : 'الإحصائيات';
+  const inbox = S.side === 'inbox', bulk = S.side === 'bulk', off = S.side === 'offline';
+  const body = inbox ? inboxBody() : bulk ? bulkBody() : off ? offlineBody() : statsBody();
+  const title = inbox ? 'الملاحظات' : bulk ? 'إدخال جماعي للمدارس' : off ? 'التنزيل للعمل دون شبكة' : 'الإحصائيات';
   const keepScroll = $('.panel-body') ? $('.panel-body').scrollTop : 0, again = !!$('#overlay .panel');
   $('#overlay').innerHTML = `<div class="panel" dir="rtl" role="dialog" aria-label="${title}" ${again ? 'style="animation:none"' : ''}>
-    <div class="panel-head"><div class="wrap"><span style="color:var(--accent)">${ic(inbox ? 'inbox' : bulk ? 'upload' : 'stats', 22)}</span><h2>${title}</h2><button class="icon-btn" data-act="closeside" aria-label="إغلاق">${ic('x', 20)}</button></div>
+    <div class="panel-head"><div class="wrap"><span style="color:var(--accent)">${ic(inbox ? 'inbox' : bulk ? 'upload' : off ? 'cloud' : 'stats', 22)}</span><h2>${title}</h2><button class="icon-btn" data-act="closeside" aria-label="إغلاق">${ic('x', 20)}</button></div>
       ${inbox ? `<div class="wrap"><div class="tabs">${[['all', 'كل الملاحظات'], ['unread', 'غير المقروءة']].map(([k, l]) => `<button class="tab ${S.notesFilter === k ? 'on' : ''}" data-act="nfilter" data-v="${k}">${l}${k === 'unread' && S.unread ? ` <span class="state-pill" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">${S.unread}</span>` : ''}</button>`).join('')}</div></div>` : ''}</div>
     <div class="panel-body" data-lenis-prevent><div class="wrap">${body}</div></div></div>`;
   if (keepScroll) $('.panel-body').scrollTop = keepScroll;
+  if (off) renderOffJob();
 }
 async function loadNotes() {
   try { S.notes = await call('apiNotes'); S.unread = S.notes.filter(n => !n.read).length; renderTop(); } catch { S.notes = S.notes || []; }
@@ -3492,6 +3696,7 @@ document.addEventListener('click', async e => {
     case 'home': closeAll(); goHome(); break;
     case 'theme': toggleTheme(); break;
     case 'stats': openSide('stats'); break;
+    case 'offline': openSide('offline'); break;
     case 'bulk': openSide('bulk'); break;
     case 'bk-tab': if (!S.bulk.busy && S.bulk.tab !== el.dataset.v) { S.bulk.tab = el.dataset.v; S.bulk.result = null; S.bulk.title = ''; renderSide(); } break;
     case 'bk-pickx': $('#fBulkX').click(); break;
@@ -3547,7 +3752,7 @@ document.addEventListener('click', async e => {
     case 'up': goUp(); break;
     case 'crumb': closeSheet(); if (+el.dataset.d === 0) { backToSchool(S.school); break; } S.path = S.path.slice(0, +el.dataset.d); renderSchoolView(true); break;
     case 'usermenu': e.stopPropagation(); openUserMenu(el); break;
-    case 'logout': $('.menu')?.remove(); api('apiLogout', S.token).catch(() => {}); endSession(); break;
+    case 'logout': $('.menu')?.remove(); idbDel('meta', 'boot:' + S.token); api('apiLogout', S.token).catch(() => {}); endSession(); break;
     case 'refresh': $('.menu')?.remove(); await refresh(); toast('تم تحديث البيانات'); break;
     case 'retry': boot(); break;
     case 'mypin': $('.menu')?.remove(); if (S.me.role === 'school') schoolPwdDialog(); else pinDialog(S.me, true); break;

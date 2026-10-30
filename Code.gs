@@ -639,6 +639,22 @@ function apiGetInfo(token, code) {
   if (u.role === 'school' && String(code) !== u.school) throw new Error('FORBIDDEN');
   return infoFor_(code, u.role === 'viewer' ? allowedLeaves_(u, readSections_()) : null, u);
 }
+/* ---------- التنزيل للعمل دون شبكة ----------
+ * يعيد معلومات المدرسة مع «بصمة» تتغير عند أي إضافة أو تعديل أو حذف، ليعرف التطبيق هل لديه أحدث نسخة. */
+function infoSig_(info) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(info), Utilities.Charset.UTF_8)
+    .map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+}
+function apiOfflinePack(token, code) {
+  const info = apiGetInfo(token, code);
+  return { info, sig: infoSig_(info) };
+}
+function apiInfoSig(token, codes) {
+  const out = {};
+  (codes || []).slice(0, 200).forEach(c => { try { out[String(c)] = infoSig_(apiGetInfo(token, c)); } catch (e) { out[String(c)] = ''; } });
+  return out;
+}
+
 function apiAddText(token, code, leaf, title, text, kind) {
   const u = auth_(token, 'edit');
   if (String(text).length > MAX_TEXT) throw new Error('TEXT_TOO_LONG');
