@@ -41,7 +41,7 @@ setTimeout(function () {
   --accent:#0D7A69; --accent-ink:#FFFFFF; --accent-soft:#D5EDE8;
   --bld:#2D679B; --bld-soft:#DCE7F2; --hr:#A9682A; --hr-soft:#F3E4D1;
   --boys:#2D679B; --boys-soft:#DCE7F2; --girls:#A9476E; --girls-soft:#F4DEE7; --mixed:#0D7A69; --mixed-soft:#D5EDE8;
-  --danger:#B13838; --danger-soft:#F6DEDE; --on-tone:#FFFFFF;
+  --danger:#B13838; --danger-soft:#F6DEDE; --on-tone:#FFFFFF; --wl:#B07A12; --wl-soft:#FBEFC9;
   --t3:#7A4F9E; --t3-soft:#ECE2F4; --t4:#5B7A2B; --t4-soft:#E6EEDA; --t5:#B5503A; --t5-soft:#F6E0DA; --t6:#46596B; --t6-soft:#E0E6EC;
   --shadow:0 14px 34px -16px rgba(19,48,44,.30);
   --shadow-sm:0 4px 14px -8px rgba(19,48,44,.28);
@@ -54,7 +54,7 @@ setTimeout(function () {
   --accent:#41B8A2; --accent-ink:#04201B; --accent-soft:#163C36;
   --bld:#73A8DA; --bld-soft:#1B2E43; --hr:#E1A562; --hr-soft:#3A2A18;
   --boys:#73A8DA; --boys-soft:#1B2E43; --girls:#E38CAE; --girls-soft:#3C1E2B; --mixed:#41B8A2; --mixed-soft:#163C36;
-  --danger:#E57B7B; --danger-soft:#3D1D1D; --on-tone:#08201C;
+  --danger:#E57B7B; --danger-soft:#3D1D1D; --on-tone:#08201C; --wl:#F0C35A; --wl-soft:#3A2E12;
   --t3:#B794DA; --t3-soft:#2E2240; --t4:#A3C46E; --t4-soft:#25301A; --t5:#E68F79; --t5-soft:#3D221B; --t6:#9FB3C6; --t6-soft:#212C36;
   --shadow:0 14px 34px -16px rgba(0,0,0,.6); --shadow-sm:0 4px 14px -8px rgba(0,0,0,.6);
   color-scheme:dark}}
@@ -63,7 +63,7 @@ setTimeout(function () {
   --accent:#41B8A2; --accent-ink:#04201B; --accent-soft:#163C36;
   --bld:#73A8DA; --bld-soft:#1B2E43; --hr:#E1A562; --hr-soft:#3A2A18;
   --boys:#73A8DA; --boys-soft:#1B2E43; --girls:#E38CAE; --girls-soft:#3C1E2B; --mixed:#41B8A2; --mixed-soft:#163C36;
-  --danger:#E57B7B; --danger-soft:#3D1D1D; --on-tone:#08201C;
+  --danger:#E57B7B; --danger-soft:#3D1D1D; --on-tone:#08201C; --wl:#F0C35A; --wl-soft:#3A2E12;
   --t3:#B794DA; --t3-soft:#2E2240; --t4:#A3C46E; --t4-soft:#25301A; --t5:#E68F79; --t5-soft:#3D221B; --t6:#9FB3C6; --t6-soft:#212C36;
   --shadow:0 14px 34px -16px rgba(0,0,0,.6); --shadow-sm:0 4px 14px -8px rgba(0,0,0,.6);
   color-scheme:dark}
@@ -597,6 +597,14 @@ tr:last-child td{border-bottom:0}
 .pv-full.rot .pv-fbar + .pv-fscroll{top:50%}
 .pv-fscroll.pv-sheet{display:block;padding:0;background:var(--surface);color:var(--ink)}
 @media (max-width:560px){.pv-facts .btn span{display:none}.pv-facts .btn{padding-inline:10px}}
+/* ---------- wilayah «shared information» button ---------- */
+.wtile .badge{background:linear-gradient(145deg,color-mix(in srgb,var(--wl) 22%,var(--surface)),color-mix(in srgb,var(--wl) 45%,var(--surface)));color:var(--wl);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--wl) 55%,transparent),0 6px 18px -8px color-mix(in srgb,var(--wl) 70%,transparent)}
+.wtile .badge::after{border:2px solid color-mix(in srgb,var(--wl) 60%,transparent);border-style:solid dashed}
+.wtile .t-name{color:var(--wl)}
+.wtile{background:color-mix(in srgb,var(--wl-soft) 55%,transparent);border-color:color-mix(in srgb,var(--wl) 30%,transparent)}
+.wtile:hover{background:color-mix(in srgb,var(--wl-soft) 85%,transparent);border-color:color-mix(in srgb,var(--wl) 55%,transparent)}
+.bk-target{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:13.5px;color:var(--muted)}
+.bk-target .seg button{display:inline-flex;gap:6px;align-items:center}
 .pdf-sheet{position:fixed;left:-20000px;top:0;width:max-content;max-width:3000px;min-width:720px;background:#fff;color:#111;padding:36px 40px;font-family:var(--f-body)}
 .pdf-sheet h1{font-family:var(--f-display);font-size:24px;margin:0 0 4px;color:#0d4f45}
 .pdf-sheet p{margin:0 0 18px;color:#555;font-size:14px}
@@ -1348,7 +1356,7 @@ function renderWheel(g) {
   const pages = names.map((w, i) => { const arr = by.get(w);
     return `<section class="wpage" data-wi="${i}" aria-label="${esc(wlName(w))}"><div class="wpage-glass">
       <header class="wpage-h"><span class="wpage-ic">${ic('map', 18)}</span><h2>${esc(wlName(w))}</h2><span class="wpage-n">${arr.length.toLocaleString('ar-OM')} مدرسة</span></header>
-      <div class="wpage-body" data-lenis-prevent>${arr.length ? `<div class="tiles">${arr.map(tile).join('')}</div>`
+      <div class="wpage-body" data-lenis-prevent>${arr.length || wb(w) ? `<div class="tiles">${wb(w) ? wtile(w) : ''}${arr.map(tile).join('')}</div>${arr.length ? '' : `<p class="d" style="text-align:center;color:var(--muted)">لا توجد مدارس في ${esc(wlName(w))} تطابق الفلاتر المختارة.</p>`}`
         : `<div class="empty" style="padding:40px 12px"><span class="e-icon">${ic('search', 30)}</span><p>لا توجد مدارس في ${esc(wlName(w))} تطابق الفلاتر المختارة.</p><button class="btn sm" data-act="clearf">إزالة الفلاتر</button></div>`}</div></div></section>`; }).join('');
   g.innerHTML = `<div class="wheel" dir="rtl">
     <div class="wl-side"><div class="wl-drum" tabindex="0" role="listbox" aria-label="اختر الولاية" data-lenis-prevent>
@@ -1482,7 +1490,20 @@ function wlReveal(code) {
 }
 
 /* ================= school / orbit ================= */
-const getSchool = code => S.schools.find(s => String(s.code) === String(code));
+/* each wilayah has a fixed «المعلومات المشتركة» button: code W:<wilayah>, used like a school for sections and information */
+const W_PREFIX = 'W:';
+const isWCode = c => String(c).startsWith(W_PREFIX);
+const getSchool = code => {
+  const c = String(code);
+  if (isWCode(c)) { const w = c.slice(W_PREFIX.length); return w && S.schools.some(s => s.wilayah === w) ? { code: c, name: 'المعلومات المشتركة - ' + w, wilayah: w, virtual: true, gender: '', stage: '', period: '' } : undefined; }
+  return S.schools.find(s => String(s.code) === c);
+};
+const wb = w => !!w && S.me && S.me.role !== 'school';   // school accounts do not see the shared buttons
+function wtile(w) {
+  const code = W_PREFIX + w;
+  return `<button class="tile wtile ${deskOn() && remDueCount(code) ? 'due' : ''}" data-act="school" data-code="${esc(code)}" style="--tone:var(--wl);--tone-soft:var(--wl-soft)" title="المعلومات التي تشترك فيها كل مدارس ${esc(w)}">
+    <span class="badge">${ic('layers', 32, 1.6)}${tileFlags(code)}</span><span class="t-name">المعلومات المشتركة</span><span class="t-meta">لكل مدارس ${esc(w)}</span></button>`;
+}
 const hiddenIds = () => new Set(S.me && S.me.role === 'viewer' ? (S.me.hidden || []) : []);
 function vis(n, H = hiddenIds()) { if (H.has(n.id)) return false; const ch = n.children || []; return !ch.length || ch.some(c => vis(c, H)); }
 const kids = n => (n.children || []).filter(c => vis(c));
@@ -1546,7 +1567,7 @@ function focusSchool(code, anim = true) {
   const b = tile.querySelector('.badge').getBoundingClientRect();
   const cx = Math.min(Math.max(b.left + b.width / 2, half + 8), window.innerWidth - half - 8);
   const cy = Math.min(Math.max(b.top + b.height / 2, half + 70), window.innerHeight - half - 8);
-  const ctone = root ? root.tone : genderTone(s.gender);
+  const ctone = root ? root.tone : s.virtual ? 'wl' : genderTone(s.gender);
   const lf = small ? 12.5 : 14;
   const active = S.sheet ? S.sheet.id : null;
   const pos = rs.map((_, i) => { const a = angleAt(i, n); return { x: Math.round(Math.cos(a) * R), y: Math.round(Math.sin(a) * R) }; });
@@ -1562,8 +1583,8 @@ function focusSchool(code, anim = true) {
   const center = node
     ? `${ic(node.icon || root.icon || 'folder', small ? 24 : 28, 1.6)}<span class="c-name">${esc(node.name)}</span>
        <span class="c-meta">${esc(s.name)}</span><span class="c-up">${ic('up', 11, 2)} رجوع</span>`
-    : `${ic('school', small ? 24 : 28, 1.6)}<span class="c-name">${esc(s.name)}</span>
-       <span class="c-meta">${desk ? 'ملاحظات وتذكير' : esc(s.code) + (s.period ? ' · ' + esc(s.period) : '')}</span><span class="c-up">${ic('x', 11, 2)} إغلاق</span>`;
+    : `${ic(s.virtual ? 'layers' : 'school', small ? 24 : 28, 1.6)}<span class="c-name">${esc(s.virtual ? 'المعلومات المشتركة' : s.name)}</span>
+       <span class="c-meta">${desk ? 'ملاحظات وتذكير' : s.virtual ? 'ولاية ' + esc(s.wilayah) : esc(s.code) + (s.period ? ' · ' + esc(s.period) : '')}</span><span class="c-up">${ic('x', 11, 2)} إغلاق</span>`;
   $('#overlay').innerHTML = `<div class="focus-scrim" data-act="unfocus"></div>
     <div class="focus-wrap" dir="rtl" style="left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) scale(${k.toFixed(3)})">
       <div class="orbit ${anim ? '' : 'still'}" style="width:${size}px;height:${size}px;--c:${c}px">
@@ -1892,12 +1913,12 @@ function renderSchoolView(anim) {
   $('#view').innerHTML = `<div class="wrap">
     <nav class="crumbs" aria-label="المسار">${crumbs.join('')}</nav>
     <div class="school-strip">
-      <span class="pill tone" style="--tone:var(--${t});--tone-soft:var(--${t}-soft)">${esc(s.gender || 'غير محدد')}</span>
-      <span class="pill"><span>الرمز</span>${esc(s.code)}</span>
+      ${s.virtual ? `<span class="pill tone" style="--tone:var(--wl);--tone-soft:var(--wl-soft)">${ic('layers', 14)} معلومات تشترك فيها كل مدارس الولاية</span>` : `<span class="pill tone" style="--tone:var(--${t});--tone-soft:var(--${t}-soft)">${esc(s.gender || 'غير محدد')}</span>
+      <span class="pill"><span>الرمز</span>${esc(s.code)}</span>`}
       ${s.wilayah ? `<span class="pill"><span>الولاية</span>${esc(s.wilayah)}</span>` : ''}
       ${s.stage ? `<span class="pill"><span>المرحلة</span>${esc(stageLabel(s.stage))}</span>` : ''}
       ${s.period ? `<span class="pill"><span>الفترة</span>${esc(s.period)}</span>` : ''}
-      ${can('edit') ? `<button class="btn ghost sm" data-act="editschool">${ic('edit', 16)} تعديل بيانات المدرسة</button>` : ''}
+      ${can('edit') && !s.virtual ? `<button class="btn ghost sm" data-act="editschool">${ic('edit', 16)} تعديل بيانات المدرسة</button>` : ''}
     </div>
     <div class="stage-wrap"><div class="stage" id="stage"></div></div></div>`;
   renderOrbit(anim);
@@ -2512,12 +2533,34 @@ function parseTable(t) {
   catch { return { cols: [], rows: [] }; }
 }
 const codeOf = v => toLatinNum(v).replace(/\.0+$/, '').replace(/\s+/g, '');
-function bulkInit() { return { tab: 'table', leaf: '', title: '', share: false, table: null, text: null, images: null, busy: false, done: 0, total: 0, result: null }; }
+function bulkInit() { return { target: 'schools', tab: 'table', leaf: '', title: '', share: false, table: null, text: null, images: null, busy: false, done: 0, total: 0, result: null }; }
 function bulkLeaves() {
   const out = []; const walk = (list, trail) => list.forEach(n => { const t = trail.concat(n.name); if ((n.children || []).length) walk(n.children, t); else out.push({ id: n.id, label: t.join(' › ') }); });
   walk(S.config.roots, []); return out;
 }
-function schoolMap() { const m = new Map(); S.schools.forEach(x => m.set(String(x.code), x)); return m; }
+const bkW = () => !!(S.bulk && S.bulk.target === 'wilayat');
+const wilayahList = () => [...new Set(S.schools.map(s => s.wilayah).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ar'));
+function schoolMap() { const m = new Map(); if (bkW()) wilayahList().forEach(w => m.set(W_PREFIX + w, { code: W_PREFIX + w, name: 'ولاية ' + w, wilayah: w })); else S.schools.forEach(x => m.set(String(x.code), x)); return m; }
+/* a cell or line start: a school code, or (wilayah buttons) a wilayah name */
+function bkCode(v) {
+  if (!bkW()) return codeOf(v);
+  const t = nn(v).replace(/^ولايه\s*/, '').trim(); if (!t) return '';
+  const ws = wilayahList(), base = x => nn(x).replace(/^ال/, '');
+  const hit = ws.find(w => nn(w) === t) || ws.find(w => base(w) === t.replace(/^ال/, ''));
+  return hit ? W_PREFIX + hit : t;
+}
+function bkKeys() {
+  if (!bkW()) return schoolKeys();
+  return wilayahList().map(w => ({ code: W_PREFIX + w, full: '', core: '', toks: words(w).filter(x => x.length >= 2), nums: [], period: '' }));
+}
+/* wilayah buttons reuse the school screens: only the wording changes (user data and Excel contents are left as they are) */
+const bkWord = t => String(t).replace(/المدارس/g, 'الولايات').replace(/مدارس/g, 'ولايات').replace(/مدرستها/g, 'ولايتها').replace(/مدرسته/g, 'ولايته').replace(/المدرسة/g, 'الولاية').replace(/مدرسة/g, 'ولاية').replace(/رمز الولاية/g, 'اسم الولاية').replace(/الرمز أو الاسم/g, 'اسم الولاية').replace(/رمز غير موجود/g, 'اسم غير موجود في قائمة الولايات');
+function bkWordHTML(html) {
+  const tp = document.createElement('template'); tp.innerHTML = html;
+  const wk = document.createTreeWalker(tp.content, NodeFilter.SHOW_TEXT); let n;
+  while ((n = wk.nextNode())) { if (n.parentElement && n.parentElement.closest('.bk-prev, .info-table, [dir="auto"], option, textarea')) continue; n.nodeValue = bkWord(n.nodeValue); }
+  return tp.innerHTML;
+}
 /* Tab-separated text as Excel puts it on the clipboard (cells with line breaks come quoted). */
 function parseTSV(t) {
   const rows = []; let row = [], cell = '', q = false;
@@ -2535,7 +2578,7 @@ function parseTSV(t) {
 function bulkText(raw) {
   const sm = schoolMap(), by = new Map(), unknown = [];
   parseTSV(raw).forEach((r, i) => {
-    const c = codeOf(r[0]), text = r.slice(1).map(x => String(x).trim()).filter(Boolean).join(' ');
+    const c = bkCode(r[0]), text = r.slice(1).map(x => String(x).trim()).filter(Boolean).join(' ');
     if (!sm.has(c)) { if (i > 0 || /\d/.test(c)) unknown.push(String(r[0]).trim()); return; }
     if (!text) return;
     by.set(c, by.has(c) ? by.get(c) + '\n' + text : text);
@@ -2566,8 +2609,8 @@ const xSig = x => x.sheet + '#' + x.grid.slice(0, 4).map(r => r.slice(0, 40).joi
 function xDefaults(x) {
   const sm = schoolMap(), g = x.grid;
   let code = 0, best = -1;
-  for (let c = 0; c < x.width; c++) { const n = g.slice(0, 300).filter(r => sm.has(codeOf(r[c]))).length; if (n > best) { best = n; code = c; } }
-  let hdr = g.findIndex(r => sm.has(codeOf(r[code]))); if (hdr < 0) hdr = 1; hdr = Math.min(hdr, 10);
+  for (let c = 0; c < x.width; c++) { const n = g.slice(0, 300).filter(r => sm.has(bkCode(r[c]))).length; if (n > best) { best = n; code = c; } }
+  let hdr = g.findIndex(r => sm.has(bkCode(r[code]))); if (hdr < 0) hdr = 1; hdr = Math.min(hdr, 10);
   const st = { hdr, code, names: {}, sel: [], transpose: false, hideEmpty: true };
   x.st = st;
   const body = g.slice(hdr);
@@ -2587,7 +2630,7 @@ function xLoadSheet(name) {
 function xBuild() {
   const x = S.bulk.x, st = x.st, sm = schoolMap(), by = new Map(), unknown = new Set();
   x.grid.slice(st.hdr).forEach(r => {
-    const raw = r[st.code], c = codeOf(raw); if (!c) return;
+    const raw = r[st.code], c = bkCode(raw); if (!c) return;
     if (!sm.has(c)) { if (/\d/.test(c)) unknown.add(raw); return; }
     if (!by.has(c)) by.set(c, []); by.get(c).push(r);
   });
@@ -2773,8 +2816,8 @@ async function bulkAnalyze(kind, files) {
   const st = S.bulk[kind] = { items: [], analyzing: true, done: 0, total: 0, split: prev ? prev.split !== false : true };
   const list = [...files].filter(f => kind === 'images' ? (/^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic)$/i.test(f.name)) : !/^\./.test(f.name));
   st.total = list.length; renderSide();
-  const keys = schoolKeys(), codes = new Set(keys.map(k => k.code));
-  const nameOf = c => (S.schools.find(x => String(x.code) === c) || {}).name || c;
+  const keys = bkKeys(), codes = new Set(keys.map(k => k.code)), smap = schoolMap();
+  const nameOf = c => (smap.get(c) || {}).name || c;
   for (const f of list) {
     const base = f.name.replace(/\.[^.]+$/, '');
     let m = matchText(base, keys, codes), how = m && m.code ? (m.how === 'code' ? 'رمز المدرسة في اسم الملف' : 'اسم المدرسة في اسم الملف') : '';
@@ -2807,12 +2850,12 @@ async function bulkAnalyze(kind, files) {
   }
   st.analyzing = false; renderSide(); bulkSyncButton();
   const bad = st.items.filter(x => !x.code).length;
-  if (bad) toast(bad === 1 ? `تعذر تمييز ${kind === 'images' ? 'صورة واحدة' : 'ملف واحد'} لأي مدرسة. اختر المدرسة يدوياً من القائمة، وإلا فلن ${kind === 'images' ? 'تُرفع' : 'يُرفع'}.` : `تعذر تمييز ${bad} من ${kind === 'images' ? 'الصور' : 'الملفات'} لأي مدرسة. اختر المدرسة يدوياً من القائمة، وإلا فلن تُرفع.`);
+  if (bad) toast((bkW() ? bkWord : String)(bad === 1 ? `تعذر تمييز ${kind === 'images' ? 'صورة واحدة' : 'ملف واحد'} لأي مدرسة. اختر المدرسة يدوياً من القائمة، وإلا فلن ${kind === 'images' ? 'تُرفع' : 'يُرفع'}.` : `تعذر تمييز ${bad} من ${kind === 'images' ? 'الصور' : 'الملفات'} لأي مدرسة. اختر المدرسة يدوياً من القائمة، وإلا فلن تُرفع.`));
 }
 function bulkFilesCard(kind) {
   const st = S.bulk[kind], img = kind === 'images', sm = schoolMap();
   const items = st ? st.items : [], ok = items.filter(x => x.code).length;
-  const opts = (sel, cands) => `<option value="">— اختر المدرسة —</option>${cands.length ? `<optgroup label="المدارس المحتملة">${cands.map(c => `<option value="${esc(c)}" ${sel === c ? 'selected' : ''}>${esc((sm.get(c) || {}).name || c)} — ${esc(c)}</option>`).join('')}</optgroup>` : ''}<optgroup label="كل المدارس">${S.schools.map(x => `<option value="${esc(x.code)}" ${sel === String(x.code) && !cands.includes(sel) ? 'selected' : ''}>${esc(x.name)} — ${esc(x.code)}</option>`).join('')}</optgroup>`;
+  const opts = (sel, cands) => `<option value="">— ${bkW() ? 'اختر الولاية' : 'اختر المدرسة'} —</option>${cands.length ? `<optgroup label="${bkW() ? 'الولايات المحتملة' : 'المدارس المحتملة'}">${cands.map(c => `<option value="${esc(c)}" ${sel === c ? 'selected' : ''}>${esc((sm.get(c) || {}).name || c)} — ${esc(c)}</option>`).join('')}</optgroup>` : ''}<optgroup label="${bkW() ? 'كل الولايات' : 'كل المدارس'}">${[...sm.values()].map(x => `<option value="${esc(x.code)}" ${sel === String(x.code) && !cands.includes(sel) ? 'selected' : ''}>${esc(x.name)}${bkW() ? '' : ' — ' + esc(x.code)}</option>`).join('')}</optgroup>`;
   return `<section class="card"><h3>${img ? 'الصور' : 'المستندات'}</h3>
     <p class="d" style="margin:0">يُربط كل ملف بمدرسته بهذا الترتيب: رمز المدرسة في اسم الملف، ثم اسم المدرسة في اسم الملف${img ? '' : '، ثم الرمز أو الاسم داخل الملف نفسه (PDF وWord وExcel وPowerPoint والنصوص)'}. يمكنك تغيير المدرسة لأي ملف من القائمة.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="bk-pick" data-v="${kind}">${ic(img ? 'image' : 'doc', 16)} اختيار ${img ? 'صور' : 'ملفات'}</button><button class="btn" data-act="bk-pickdir" data-v="${kind}">${ic('folder', 16)} اختيار مجلد كامل</button></div>
@@ -2858,23 +2901,26 @@ function bulkBody() {
   }
   const can = count && b.leaf && (b.tab !== 'table' || b.title.trim()) && !b.busy;
   const why = !count ? '' : !b.leaf ? 'اختر القسم أولاً.' : b.tab === 'table' && !b.title.trim() ? 'اكتب عنوان الجدول.' : '';
-  return `<div class="bk-tabs"><div class="seg">${tabs.map(([k, l, i]) => `<button data-act="bk-tab" data-v="${k}" class="${b.tab === k ? 'on' : ''}">${ic(i, 15)} ${l}</button>`).join('')}</div></div>
+  const target = `<div class="bk-target"><span>الإدخال إلى</span><div class="seg"><button data-act="bk-target" data-v="schools" class="${bkW() ? '' : 'on'}">${ic('school', 15)} المدارس</button><button data-act="bk-target" data-v="wilayat" class="${bkW() ? 'on' : ''}">${ic('layers', 15)} المعلومات المشتركة للولايات</button></div></div>`;
+  const html = `<div class="bk-tabs"><div class="seg">${tabs.map(([k, l, i]) => `<button data-act="bk-tab" data-v="${k}" class="${b.tab === k ? 'on' : ''}">${ic(i, 15)} ${l}</button>`).join('')}</div></div>
     ${res}${prog}${common}${main}
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="bk-go" ${can ? '' : 'disabled'}>${ic('upload', 18)} إدخال المعلومة لـ ${count.toLocaleString('ar-OM')} مدرسة</button><span id="bkWhy" style="color:var(--muted);font-size:13px">${why}</span></div>
     <input type="file" id="fBulkX" accept=".xlsx,.xls,.csv" hidden><input type="file" id="fBulkImg" accept="image/*" multiple hidden><input type="file" id="fBulkDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" multiple hidden><input type="file" id="fBulkDir" webkitdirectory multiple hidden>`;
+  return target + (bkW() ? bkWordHTML(html) : html);
 }
-function bulkTextPrev() {
+function bulkTextPrev() { const h = bulkTextPrev0(); return bkW() ? bkWordHTML(h) : h; }
+function bulkTextPrev0() {
   const t = S.bulk.text; if (!t) return '';
   const sm = schoolMap();
   return `<div class="bk-sum" style="margin-top:4px"><span class="sa-pill ok">${t.groups.length.toLocaleString('ar-OM')} مدرسة</span>${t.unknown.length ? `<span class="sa-pill off">${t.unknown.length.toLocaleString('ar-OM')} رمز غير موجود: ${esc(t.unknown.slice(0, 8).join('، '))}</span>` : ''}</div>
-    ${t.groups.length ? `<div class="table-wrap" style="margin-top:8px"><table class="info-table"><thead><tr><th>المدرسة</th><th>النص</th></tr></thead><tbody>${t.groups.slice(0, 50).map(g => `<tr><td>${esc((sm.get(g.code) || {}).name || '')} <span style="color:var(--muted)">${esc(g.code)}</span></td><td style="white-space:pre-wrap">${esc(g.text)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+    ${t.groups.length ? `<div class="table-wrap" style="margin-top:8px"><table class="info-table"><thead><tr><th>${bkW() ? 'الولاية' : 'المدرسة'}</th><th>النص</th></tr></thead><tbody>${t.groups.slice(0, 50).map(g => `<tr><td>${esc((sm.get(g.code) || {}).name || '')} <span style="color:var(--muted)">${bkW() ? '' : esc(g.code)}</span></td><td style="white-space:pre-wrap">${esc(g.text)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
 }
 function bulkSyncButton() {
   // refresh the submit button without re-rendering inputs the user is typing in
   const b = S.bulk, btn = $('[data-act="bk-go"]'); if (!btn) return;
   const count = b.tab === 'table' ? (b.table ? b.table.groups.length : 0) : b.tab === 'text' ? (b.text ? b.text.groups.length : 0) : (b[b.tab] && !b[b.tab].analyzing ? b[b.tab].items.filter(x => x.code).length : 0);
   btn.disabled = !(count && b.leaf && (b.tab !== 'table' || b.title.trim()) && !b.busy);
-  btn.innerHTML = `${ic('upload', 18)} إدخال المعلومة لـ ${count.toLocaleString('ar-OM')} مدرسة`;
+  btn.innerHTML = `${ic('upload', 18)} إدخال المعلومة لـ ${count.toLocaleString('ar-OM')} ${bkW() ? 'ولاية' : 'مدرسة'}`;
   const w = $('#bkWhy'); if (w) w.textContent = !count ? '' : !b.leaf ? 'اختر القسم أولاً.' : b.tab === 'table' && !b.title.trim() ? 'اكتب عنوان الجدول.' : '';
 }
 async function bulkGo() {
@@ -2922,7 +2968,7 @@ async function bulkGo() {
     if (added) { if (b.tab === 'table') { b.table = null; b.x = null; } else if (b.tab === 'text') { b.text = null; b.raw = ''; } else b[b.tab] = null; }
     renderSide();
     if (S.infoCode) loadInfo(S.infoCode);
-    toast(added ? `أُضيفت المعلومة لـ ${added} مدرسة` : 'لم تُضف أي معلومة');
+    toast(added ? `أُضيفت المعلومة لـ ${added} ${bkW() ? 'ولاية' : 'مدرسة'}` : 'لم تُضف أي معلومة');
   }
 }
 
@@ -3452,6 +3498,7 @@ document.addEventListener('click', async e => {
     case 'bk-pick': $(el.dataset.v === 'images' ? '#fBulkImg' : '#fBulkDoc').click(); break;
     case 'bk-pickdir': S.bulk.dirFor = el.dataset.v; $('#fBulkDir').click(); break;
     case 'bk-go': bulkGo(); break;
+    case 'bk-target': if (!S.bulk.busy && S.bulk.target !== el.dataset.v) { S.bulk = { ...bulkInit(), target: el.dataset.v, tab: S.bulk.tab, leaf: S.bulk.leaf, title: S.bulk.title }; renderSide(); } break;
     case 'bx-all': case 'bx-none': case 'bx-data': {
       const x = S.bulk.x; if (!x) break; const st = x.st;
       st.sel = a === 'bx-none' ? [] : [...Array(x.width).keys()].filter(c => c !== st.code && (a === 'bx-all' || x.grid.slice(st.hdr).some(r => r[c])));

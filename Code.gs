@@ -387,7 +387,13 @@ function findInfoRow_(itemId) {
   const hit = sh.getRange(2, I.id + 1, sh.getLastRow() - 1, 1).createTextFinder(String(itemId)).matchEntireCell(true).findNext();
   return hit ? hit.getRow() : null;
 }
+/* زر «المعلومات المشتركة» لكل ولاية: رمزه W: ثم اسم الولاية، ويُعامل كمدرسة في الأقسام والمعلومات،
+ * ولا يظهر لحسابات المدارس ولا يدخل في الإحصائيات. */
+const W_ = 'W:';
+const isW_ = c => String(c).indexOf(W_) === 0;
+const wName_ = w => 'المعلومات المشتركة - ' + w;
 function schoolName_(code) {
+  if (isW_(code)) { const w = String(code).slice(W_.length).trim(); return w && schoolRows_().some(x => x.wilayah === w) ? wName_(w) : ''; }
   const r = rows_('schools', true).find(x => String(x[1]) === String(code));
   return r ? String(r[2]) : '';
 }
@@ -398,7 +404,7 @@ function newInfoRow_(u, code, leaf, item) {
   r[I.id] = item.id; r[I.type] = item.type; r[I.title] = item.title || ''; r[I.text] = item.text || '';
   r[I.fname] = item.name || ''; r[I.fid] = item.fileId || ''; r[I.furl] = item.url || ''; r[I.size] = item.size || '';
   r[I.mime] = item.mime || ''; r[I.by] = u.name; r[I.at] = new Date();
-  if (item.share) { r[I.aud] = AUD.list; r[I.tgt] = String(code); }
+  if (item.share && !isW_(code)) { r[I.aud] = AUD.list; r[I.tgt] = String(code); }
   return r;
 }
 function leafResult_(u, code, leaf) {
@@ -689,7 +695,7 @@ function apiBulkAdd(token, leaf, items, share) {
   const path = pathTo_(readSections_(), String(leaf));
   if (!path) throw new Error('NOT_FOUND');
   const pathName = path.map(n => n.name).join(' › ');
-  const names = {}; schoolRows_().forEach(x => { names[x.code] = x.name; });
+  const names = {}; schoolRows_().forEach(x => { names[x.code] = x.name; if (x.wilayah) names[W_ + x.wilayah] = wName_(x.wilayah); });
   const rows = [], skipped = [];
   (items || []).forEach(it => {
     const c = String(it.code || '').trim(), text = String(it.text || '');
@@ -698,7 +704,7 @@ function apiBulkAdd(token, leaf, items, share) {
     r[I.code] = c; r[I.sname] = names[c]; r[I.leaf] = String(leaf); r[I.path] = pathName; r[I.id] = newId_();
     r[I.type] = it.type === 'table' ? 'table' : 'text'; r[I.title] = String(it.title || '').slice(0, 200); r[I.text] = text;
     r[I.by] = u.name; r[I.at] = new Date();
-    if (share) { r[I.aud] = AUD.list; r[I.tgt] = c; }
+    if (share && !isW_(c)) { r[I.aud] = AUD.list; r[I.tgt] = c; }
     rows.push(r);
   });
   return withLock_(() => {
