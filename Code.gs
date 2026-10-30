@@ -18,7 +18,7 @@ const HEAD = {
   schools: ['الولاية', 'رمز المدرسة', 'اسم المدرسة', 'المرحلة', 'الجنس', 'الفترة'],
   sections: ['المعرف', 'القسم الأب', 'اسم القسم', 'الأيقونة', 'اللون', 'الترتيب'],
   info: ['رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'النوع', 'العنوان', 'النص',
-    'اسم الملف', 'معرف الملف', 'رابط الملف', 'الحجم', 'نوع الملف', 'أضافها', 'التاريخ', 'مرئية للمدارس', 'المدارس المستهدفة'],
+    'اسم الملف', 'معرف الملف', 'رابط الملف', 'الحجم', 'نوع الملف', 'أضافها', 'التاريخ', 'مرئية للمدارس', 'المدارس المستهدفة', 'المعاينة'],
   users: ['المعرف', 'الاسم', 'الدور', 'بصمة الرقم السري', 'الأقسام المستثناة', 'تاريخ الإضافة'],
   notes: ['المعرف', 'رمز المدرسة', 'اسم المدرسة', 'معرف القسم', 'مسار القسم', 'معرف المعلومة', 'عنوان المعلومة',
     'نص الملاحظة', 'كاتبها', 'معرف الكاتب', 'دور الكاتب', 'التاريخ', 'قرأها'],
@@ -40,7 +40,7 @@ const AUD = { all: 'جميع المدارس', list: 'مدارس محددة' };
 const N = { id: 0, code: 1, sname: 2, leaf: 3, path: 4, item: 5, ititle: 6, text: 7, by: 8, byId: 9, role: 10, at: 11, readBy: 12 };
 const TEXT_TYPES = { text: true, mindmap: true, table: true };
 // أعمدة جدول المعلومات (تبدأ من 0)
-const I = { code: 0, sname: 1, leaf: 2, path: 3, id: 4, type: 5, title: 6, text: 7, fname: 8, fid: 9, furl: 10, size: 11, mime: 12, by: 13, at: 14, aud: 15, tgt: 16 };
+const I = { code: 0, sname: 1, leaf: 2, path: 3, id: 4, type: 5, title: 6, text: 7, fname: 8, fid: 9, furl: 10, size: 11, mime: 12, by: 13, at: 14, aud: 15, tgt: 16, prev: 17 };
 
 /* ===================== صفحة التطبيق ===================== */
 function doGet() {
@@ -108,6 +108,8 @@ function sheet_(k) {
   if (k === 'info' && !INFO_HEAD_OK_) {
     const h = sh.getRange(1, I.aud + 1, 1, 2);
     if (String(h.getValues()[0][0]) !== HEAD.info[I.aud]) { h.setValues([[HEAD.info[I.aud], HEAD.info[I.tgt]]]).setFontWeight('bold').setBackground('#D5EDE8'); sh.getRange(2, I.tgt + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@'); }
+    const ph = sh.getRange(1, I.prev + 1);
+    if (String(ph.getValue()) !== HEAD.info[I.prev]) ph.setValue(HEAD.info[I.prev]).setFontWeight('bold').setBackground('#D5EDE8');
     INFO_HEAD_OK_ = true;
   }
   return sh;
@@ -361,6 +363,7 @@ function rowToItem_(r) {
   const a = String(r[I.aud] || '');
   it.aud = a === AUD.all ? 'all' : a === AUD.list ? 'list' : '';
   it.targets = targets_(r); it.home = String(r[I.code]); it.homeName = String(r[I.sname] || '');
+  const pv = readPrev_(r); if (pv) it.preview = { k: pv.k, n: pv.ids.length, total: pv.n || pv.ids.length, r: pv.r || [] };
   return it;
 }
 // u: المستخدم الحالي (لحساب المدرسة تُعرض المعلومات المشاركة معها فقط، وتُحذف بيانات المشاركة الداخلية)
@@ -657,6 +660,7 @@ function apiDeleteItem(token, code, leaf, itemId) {
     const sh = sheet_('info');
     const fid = sh.getRange(row, I.fid + 1).getValue();
     if (fid) { try { DriveApp.getFileById(String(fid)).setTrashed(true); } catch (e) {} }
+    trashPreview_(itemId);
     sh.deleteRow(row);
     return leafResult_(u, code, leaf);
   });
@@ -674,7 +678,7 @@ function apiUpload(token, code, leaf, file, opts) {
   const item = { id: newId_(), type: /^image\//.test(file.mime) ? 'image' : 'file', title: String(opts.title || '').slice(0, 200), name: f.getName(), fileId: f.getId(), url: f.getUrl(), size: bytes.length, mime: file.mime, share: !!opts.share };
   return withLock_(() => {
     sheet_('info').appendRow(newInfoRow_(u, code, leaf, item));
-    return opts.bulk ? { ver: bump_() } : leafResult_(u, code, leaf);
+    return opts.bulk ? { ver: bump_(), itemId: item.id } : Object.assign(leafResult_(u, code, leaf), { itemId: item.id });
   });
 }
 /* ---------- الإدخال الجماعي ----------
@@ -713,10 +717,96 @@ function apiGetFile(token, fileId) {
   const u = auth_(token);
   const row = rows_('info').find(r => String(r[I.fid]) === String(fileId));
   if (!row) throw new Error('NOT_FOUND');
-  if (u.role === 'viewer' && !allowedLeaves_(u, readSections_())[String(row[I.leaf])]) throw new Error('FORBIDDEN');
-  if (u.role === 'school' && !schoolSees_(row, u.school, schoolLeaves_(u.school, readSections_()))) throw new Error('FORBIDDEN');
+  checkSees_(u, row);
   const blob = DriveApp.getFileById(String(fileId)).getBlob();
   return { data: Utilities.base64Encode(blob.getBytes()), mime: blob.getContentType(), name: String(row[I.fname]) };
+}
+
+// يمنع المشاهد من الأقسام المستثناة، وحساب المدرسة من غير معلوماته المسموحة
+function checkSees_(u, row) {
+  if (u.role === 'viewer' && !allowedLeaves_(u, readSections_())[String(row[I.leaf])]) throw new Error('FORBIDDEN');
+  if (u.role === 'school' && !schoolSees_(row, u.school, schoolLeaves_(u.school, readSections_()))) throw new Error('FORBIDDEN');
+}
+
+/* ---------- المعاينة السريعة للملفات ----------
+ * بعد رفع ملف يرسم المتصفح صفحاته صوراً (PDF، وWord وPowerPoint بعد تحويلها إلى PDF في Google Drive)
+ * أو يقرأ أوراق Excel جداولَ، ثم تُحفظ في «المرفقات/المعاينات/<معرف المعلومة>» وتُعرض دون تنزيل الملف.
+ * عمود «المعاينة» يحفظ: { k: 'pages' | 'sheets', ids: [معرفات ملفات المعاينة], r: [نسبة الارتفاع للعرض], n: عدد صفحات الملف } */
+const PREV_MAX = 40;
+function readPrev_(r) { try { const p = JSON.parse(String(r[I.prev] || '')); return p && Array.isArray(p.ids) && p.ids.length ? p : null; } catch (e) { return null; } }
+function prevBase_() { return childFolder_(childFolder_(rootFolder_(), 'المرفقات'), 'المعاينات'); }
+function trashPreview_(itemId) {
+  try { const it = prevBase_().getFoldersByName(String(itemId)); while (it.hasNext()) { const f = it.next(); if (!f.isTrashed()) f.setTrashed(true); } } catch (e) {}
+}
+function infoRowById_(itemId) {
+  const n = findInfoRow_(itemId); if (!n) throw new Error('NOT_FOUND');
+  return { n, r: sheet_('info').getRange(n, 1, 1, HEAD.info.length).getValues()[0] };
+}
+// parts: [{ data: base64, mime }] تبدأ من الصفحة start؛ start = 0 يبدأ معاينة جديدة ويحذف السابقة
+function apiPreviewPart(token, itemId, start, parts) {
+  auth_(token, 'edit');
+  const { r } = infoRowById_(itemId);
+  if (!r[I.fid]) throw new Error('NOT_FOUND');
+  start = Math.max(0, Math.floor(+start || 0));
+  if (start === 0) trashPreview_(itemId);
+  const folder = childFolder_(prevBase_(), String(itemId));
+  (parts || []).slice(0, PREV_MAX).forEach((p, k) => {
+    const i = start + k; if (i >= PREV_MAX) return;
+    const mime = p.mime === 'application/json' ? 'application/json' : 'image/jpeg';
+    const bytes = Utilities.base64Decode(p.data);
+    if (bytes.length > 4 * 1048576) throw new Error('TOO_LARGE');
+    folder.createFile(Utilities.newBlob(bytes, mime, 'p' + ('00' + i).slice(-3) + (mime === 'application/json' ? '.json' : '.jpg')));
+  });
+  return { ok: true };
+}
+// يعتمد ملفات المعاينة الموجودة في مجلد المعلومة نفسه (لا يقبل معرفات ملفات من المتصفح)
+function apiPreviewDone(token, itemId, meta) {
+  auth_(token, 'edit'); meta = meta || {};
+  return withLock_(() => {
+    const { n } = infoRowById_(itemId);
+    const files = []; const it = childFolder_(prevBase_(), String(itemId)).getFiles();
+    while (it.hasNext()) { const f = it.next(); if (!f.isTrashed() && /^p\d{3}\./.test(f.getName())) files.push(f); }
+    files.sort((a, b) => a.getName() < b.getName() ? -1 : 1);
+    if (!files.length) throw new Error('NOT_FOUND');
+    const pv = { k: meta.k === 'sheets' ? 'sheets' : 'pages', ids: files.map(f => f.getId()),
+      r: (meta.r || []).slice(0, files.length).map(x => Math.round((+x || 1.414) * 1000) / 1000), n: Math.max(files.length, Math.floor(+meta.total || 0)) };
+    sheet_('info').getRange(n, I.prev + 1).setValue(JSON.stringify(pv));
+    bump_();
+    return { preview: { k: pv.k, n: pv.ids.length, total: pv.n, r: pv.r } };
+  });
+}
+function apiGetPreview(token, itemId, idx) {
+  const u = auth_(token);
+  const { r } = infoRowById_(itemId);
+  checkSees_(u, r);
+  const pv = readPrev_(r), id = pv && pv.ids[Math.floor(+idx || 0)];
+  if (!id) throw new Error('NOT_FOUND');
+  const blob = DriveApp.getFileById(String(id)).getBlob();
+  return { data: Utilities.base64Encode(blob.getBytes()), mime: blob.getContentType() };
+}
+// يحوّل ملف Word أو PowerPoint (أو Excel قديم) إلى PDF عبر Google Drive لرسم صفحاته
+const OFFICE_ = [[/\.(docx?|rtf|odt)$/i, 'application/vnd.google-apps.document'], [/\.(pptx?|ppsx?|odp)$/i, 'application/vnd.google-apps.presentation'], [/\.(xlsx?|xlsm|ods)$/i, 'application/vnd.google-apps.spreadsheet']];
+function apiOfficePdf(token, itemId) {
+  const u = auth_(token);
+  const { r } = infoRowById_(itemId);
+  checkSees_(u, r);
+  const t = OFFICE_.find(x => x[0].test(String(r[I.fname]))); if (!t) throw new Error('NO_PREVIEW');
+  let gid = '';
+  try {
+    if (typeof Drive !== 'undefined' && Drive.Files && Drive.Files.copy) {   // خدمة Drive المتقدمة إن كانت مفعّلة
+      gid = Drive.Files.insert ? Drive.Files.copy({ title: 'معاينة مؤقتة' }, String(r[I.fid]), { convert: true }).id
+        : Drive.Files.copy({ name: 'معاينة مؤقتة', mimeType: t[1] }, String(r[I.fid])).id;
+    } else {
+      const res = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(String(r[I.fid])) + '/copy?supportsAllDrives=true', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+        headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+        payload: JSON.stringify({ name: 'معاينة مؤقتة', mimeType: t[1] }) });
+      if (res.getResponseCode() !== 200) throw new Error(/accessNotConfigured|has not been used|disabled/i.test(res.getContentText()) ? 'DRIVE_API' : 'CONVERT');
+      gid = JSON.parse(res.getContentText()).id;
+    }
+    const pdf = DriveApp.getFileById(gid).getAs('application/pdf');
+    return { data: Utilities.base64Encode(pdf.getBytes()) };
+  } finally { if (gid) { try { DriveApp.getFileById(gid).setTrashed(true); } catch (e) {} } }
 }
 
 function apiSaveSchools(token, list) {
