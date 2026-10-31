@@ -408,6 +408,7 @@ tr:last-child td{border-bottom:0}
 .memo{--mc:var(--surface);display:block;width:100%;text-align:start;break-inside:avoid;margin:0 0 14px;background:var(--mc);border:1px solid color-mix(in srgb,var(--ink) 12%,var(--mc));border-radius:14px;padding:14px 14px 10px;position:relative;transition:box-shadow .2s,transform .2s;color:var(--ink)}
 .memo:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
 .memo-grid{columns:230px;column-gap:14px}
+.memo-school{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--hr);margin-bottom:6px}
 .memo-t{display:block;font-size:16.5px;font-weight:700;line-height:1.45;margin-bottom:6px}
 .memo-b{display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;font-size:14px;line-height:1.65;color:color-mix(in srgb,var(--ink) 85%,transparent)}
 .memo-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11.5px;color:var(--muted)}
@@ -1753,7 +1754,8 @@ function focusSchool(code, anim = true) {
   else while (fp.length && (!getNode(fp) || isLeaf(getNode(fp)))) fp.pop();
   const node = fp.length ? (desk ? DESK.find(d => d.id === fp[0]) : getNode(fp)) : null;
   const root = fp.length ? (desk ? node : rootOf(fp[0])) : null;
-  const rs = desk ? (node ? node.children : DESK) : node ? kids(node) : visRoots(), n = rs.length;
+  const wm = !desk && !node && s.virtual && deskOn() ? [{ id: 'w-memos', name: 'ملاحظات المدارس', icon: 'note', tone: 'hr', special: true }] : [];
+  const rs = desk ? (node ? node.children : DESK) : node ? kids(node) : wm.concat(visRoots()), n = rs.length;
   const small = window.innerWidth < 560;
   const sItem = small ? 62 : 80, c = small ? 150 : 180, lab = 56;
   const R = Math.max(c / 2 + sItem / 2 + lab, n ? (n * sItem * 2) / (2 * Math.PI) : 0);
@@ -1769,8 +1771,8 @@ function focusSchool(code, anim = true) {
   const pos = rs.map((_, i) => { const a = angleAt(i, n); return { x: Math.round(Math.cos(a) * R), y: Math.round(Math.sin(a) * R) }; });
   const lines = rs.map((x, i) => { const p = pos[i]; const len = Math.round(Math.hypot(p.x, p.y)); return `<line x1="0" y1="0" x2="${p.x}" y2="${p.y}" style="--len:${len};--d:${i * 50}ms;--tone:var(--${(root || x).tone})"/>`; }).join('');
   const items = rs.map((x, i) => {
-    const p = pos[i], tone = (root || x).tone, leaf = desk ? !x.children : isLeaf(x), cnt = desk ? deskCount(x, code) : countIn(x), alert = desk && deskAlert(x, code);
-    return `<button class="orbit-item ${leaf && fp.length ? 'leaf' : 'branch'} ${active === x.id ? 'active' : ''} ${alert ? 'alert' : ''}" data-act="${desk ? 'dnode' : 'fnode'}" data-id="${esc(x.id)}"
+    const p = pos[i], tone = (root || x).tone, leaf = desk ? !x.children : isLeaf(x), wl = x.special ? wMemos(s.wilayah) : null, cnt = wl ? wl.length : desk ? deskCount(x, code) : countIn(x), alert = wl ? wl.some(m => m.unread) : desk && deskAlert(x, code);
+    return `<button class="orbit-item ${leaf && fp.length ? 'leaf' : 'branch'} ${active === x.id ? 'active' : ''} ${alert ? 'alert' : ''}" data-act="${x.special ? 'wmemos' : desk ? 'dnode' : 'fnode'}" data-id="${esc(x.id)}"
       style="--x:${p.x}px;--y:${p.y}px;--s:${sItem}px;--d:${90 + i * 50}ms;--lf:${lf}px;--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="${esc(x.name)}">
       <span class="bubble">${ic(x.icon || (root ? root.icon : 'folder'), Math.round(sItem * 0.42), 1.6)}</span>${cnt ? `<span class="o-count">${cnt.toLocaleString('ar-OM')}</span>` : ''}
       ${leaf && fp.length && !desk ? `<span class="o-kind" title="يعرض المعلومات">${ic('doc', 12, 2)}</span>` : ''}
@@ -1830,6 +1832,10 @@ const deskOn = () => !!(S.desk && S.me && S.me.role !== 'school');
 const memosOf = code => (S.desk ? S.desk.memos : []).filter(m => m.code === String(code)).sort((a, b) => (b.unread - a.unread) || (b.upd - a.upd));
 const remsOf = code => (S.desk ? S.desk.reminders : []).filter(r => r.code === String(code));
 const remDue = r => r.forMe && !r.read && r.due <= Date.now();
+function wMemos(w) {
+  return (S.desk ? S.desk.memos : []).filter(m => !(m.priv && !m.mine) && (m.code === W_PREFIX + w || (!isWCode(m.code) && (getSchool(m.code) || {}).wilayah === w)))
+    .sort((a, b) => (b.unread - a.unread) || (b.upd - a.upd));
+}
 const memoUnread = code => memosOf(code).filter(m => m.unread).length;
 const remDueCount = code => remsOf(code).filter(remDue).length;
 const fmtDT = t => { try { return new Date(t).toLocaleString('ar-OM', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
@@ -1881,7 +1887,7 @@ function deskNode(id) {
 function setDesk(d) {
   if (!d) return;
   S.desk = d; updateTileFlags(); renderDeskView();
-  if (S.focus && S.deskMode) focusSchool(S.focus, false);
+  if (S.focus) focusSchool(S.focus, false);
   deskTick();
 }
 const deskCall = (fn, ...a) => call(fn, ...a).then(setDesk);
@@ -1898,10 +1904,10 @@ function renderDeskView() {
   const v = S.deskView, box = $('.desk-full'); if (!v || !box) return;
   const s = getSchool(v.code); if (!s) return closeDeskView();
   const scroll = box.querySelector('.desk-body')?.scrollTop || 0;
-  const memo = v.kind === 'memos';
+  const wall = v.kind === 'wmemos', memo = v.kind === 'memos' || wall;
   const head = `<div class="mm-full-head"><span style="color:var(--${memo ? 'hr' : 't3'})">${ic(memo ? 'note' : 'bell', 22)}</span>
-    <h2>${memo ? (v.edit ? 'تعديل الملاحظات' : 'الملاحظات') : 'سجل التذكيرات'} <span class="desk-sub">${esc(s.name)}</span></h2>
-    <button class="btn primary sm" data-dk="${memo ? 'memo-new' : 'rem-new'}">${ic('plus', 15)} ${memo ? 'ملاحظة جديدة' : 'تذكير جديد'}</button>
+    <h2>${wall ? 'ملاحظات مدارس الولاية' : memo ? (v.edit ? 'تعديل الملاحظات' : 'الملاحظات') : 'سجل التذكيرات'} <span class="desk-sub">${esc(wall ? 'ولاية ' + s.wilayah : s.name)}</span></h2>
+    ${wall ? '' : `<button class="btn primary sm" data-dk="${memo ? 'memo-new' : 'rem-new'}">${ic('plus', 15)} ${memo ? 'ملاحظة جديدة' : 'تذكير جديد'}</button>`}
     <button class="icon-btn" data-dk="close" aria-label="إغلاق">${ic('x', 20)}</button></div>`;
   box.innerHTML = head + `<div class="desk-body" data-lenis-prevent>${memo ? memoBoardHTML(v) : remLogHTML(v)}</div>`;
   box.querySelector('.desk-body').scrollTop = scroll;
@@ -1910,15 +1916,20 @@ function deskChips(v, opts) {
   return `<div class="desk-chips">${opts.map(([k, l, n]) => `<button class="chip ${v.filter === k ? 'on' : ''}" data-dk="filter" data-v="${k}">${l} <span class="n">${n}</span></button>`).join('')}</div>`;
 }
 function memoBoardHTML(v) {
-  const all = memosOf(v.code).filter(m => !v.edit || m.canEdit);
+  const wall = v.kind === 'wmemos', w = wall ? (getSchool(v.code) || {}).wilayah : '';
+  const every = wall ? wMemos(w) : null;
+  const all = wall ? every.filter(m => !v.school || m.code === v.school) : memosOf(v.code).filter(m => !v.edit || m.canEdit);
+  const schoolPick = wall ? (() => { const n = new Map(); every.forEach(m => n.set(m.code, (n.get(m.code) || 0) + 1));
+    return `<div class="field" style="max-width:340px;margin-bottom:12px"><select class="input" data-dkschool aria-label="المدرسة"><option value="">كل مدارس ${esc(w)} (${every.length.toLocaleString('ar-OM')})</option>${[...n].sort((a, b) => (getSchool(a[0]) || {}).name?.localeCompare((getSchool(b[0]) || {}).name || '', 'ar') || 0).map(([c, k]) => `<option value="${esc(c)}" ${v.school === c ? 'selected' : ''}>${esc(isWCode(c) ? 'المعلومات المشتركة' : (getSchool(c) || {}).name || c)} (${k.toLocaleString('ar-OM')})</option>`).join('')}</select></div>`; })() : '';
   const aud = m => m.aud || (m.priv ? 'me' : 'all'), nEd = all.filter(m => aud(m) === 'editors').length;
   const list = all.filter(m => v.filter === 'all' || (v.filter === 'new' ? m.unread : v.filter === 'pub' ? aud(m) === 'all' : v.filter === 'ed' ? aud(m) === 'editors' : aud(m) === 'me'));
   const chips = deskChips(v, [['all', 'الكل', all.length], ['pub', 'العامة', all.filter(m => aud(m) === 'all').length]].concat(nEd || S.me.role === 'viewer' ? [['ed', 'ملاحظات المشاهدين', nEd]] : [], [['priv', 'الخاصة', all.filter(m => aud(m) === 'me').length]])
     .concat(v.edit ? [] : [['new', 'جديدة', all.filter(m => m.unread).length]]));
-  if (!all.length) return `<div class="empty"><span class="e-icon">${ic('note', 38, 1.5)}</span><h3>${v.edit ? 'لا توجد ملاحظات يمكنك تعديلها' : 'لا توجد ملاحظات لهذه المدرسة'}</h3><p>أضف ملاحظة لتظهر هنا على شكل قصاصة.</p><button class="btn primary" data-dk="memo-new">${ic('plus', 18)} ملاحظة جديدة</button></div>`;
-  return (v.edit ? '<p class="desk-hint">اختر الملاحظة التي تريد تعديلها.</p>' : '') + chips
+  if (wall && !every.length) return `<div class="empty"><span class="e-icon">${ic('note', 38, 1.5)}</span><h3>لا توجد ملاحظات لمدارس ${esc(w)}</h3><p>تظهر هنا ملاحظات كل مدارس الولاية. لإضافة ملاحظة اضغط مطوّلاً على المدرسة (أو بزر الماوس الأيمن) ثم «ملاحظات».</p></div>`;
+  if (!all.length && !wall) return `<div class="empty"><span class="e-icon">${ic('note', 38, 1.5)}</span><h3>${v.edit ? 'لا توجد ملاحظات يمكنك تعديلها' : 'لا توجد ملاحظات لهذه المدرسة'}</h3><p>أضف ملاحظة لتظهر هنا على شكل قصاصة.</p><button class="btn primary" data-dk="memo-new">${ic('plus', 18)} ملاحظة جديدة</button></div>`;
+  return (v.edit ? '<p class="desk-hint">اختر الملاحظة التي تريد تعديلها.</p>' : '') + schoolPick + chips
     + (list.length ? `<div class="memo-grid">${list.map(m => `<button class="memo c-${m.color || 'none'} ${m.unread ? 'unread' : ''}" data-dk="${v.edit ? 'memo-edit' : 'memo-open'}" data-id="${m.id}">
-      ${m.unread ? '<span class="memo-new">جديدة</span>' : ''}${m.title ? `<b class="memo-t">${esc(m.title)}</b>` : ''}${m.body ? `<span class="memo-b">${esc(m.body)}</span>` : ''}
+      ${m.unread ? '<span class="memo-new">جديدة</span>' : ''}${wall ? `<span class="memo-school">${ic(isWCode(m.code) ? 'layers' : 'school', 12)} ${esc(isWCode(m.code) ? 'المعلومات المشتركة' : (getSchool(m.code) || {}).name || m.code)}</span>` : ''}${m.title ? `<b class="memo-t">${esc(m.title)}</b>` : ''}${m.body ? `<span class="memo-b">${esc(m.body)}</span>` : ''}
       <span class="memo-meta">${m.aud === 'editors' ? `<span class="lk" title="ملاحظة مشاهد: تظهر له وللمحررين والمدير">${ic('eye', 12, 2)} ${m.mine ? 'تظهر للمحررين' : 'مشاهد · ' + esc(m.by)}</span>` : m.priv ? `<span class="lk" title="${m.mine ? 'خاصة بك' : 'خاصة بمستخدم آخر'}">${ic('lock', 12, 2)} ${m.mine ? 'خاصة' : 'خاصة · ' + esc(m.by)}</span>` : `<span>${esc(m.by)}</span>`}<span>${fmtDate(m.upd || m.at)}</span>${v.edit ? `<span class="memo-ed">${ic('edit', 13)}</span>` : ''}</span></button>`).join('')}</div>`
       : '<p class="desk-hint" style="text-align:center;padding:30px">لا توجد ملاحظات بهذا التصنيف.</p>');
 }
@@ -2055,6 +2066,7 @@ function deskTick() {
   while (host.children.length > 3) host.firstElementChild.remove();
 }
 setInterval(deskTick, 15000);
+document.addEventListener('change', e => { const sel = e.target.closest('.desk-full [data-dkschool]'); if (sel && S.deskView) { S.deskView.school = sel.value; renderDeskView(); } });
 document.addEventListener('click', e => {
   const rp = e.target.closest('[data-rp]');
   if (rp) { const card = rp.closest('.rem-pop'), r = findRem(card.dataset.id); card.remove(); if (rp.dataset.rp === 'open' && r) remOpen(r); return; }
@@ -3737,6 +3749,7 @@ document.addEventListener('click', async e => {
     case 'mm-full': { const it = sheetItems().find(x => x.id === el.dataset.id); if (it) mmFull(it); break; }
     case 'school': if (longPressed()) break; if (S.deskMode) { S.deskMode = false; S.focusPath = []; } focusSchool(el.dataset.code); break;
     case 'dnode': deskNode(el.dataset.id); break;
+    case 'wmemos': if (S.focus) openDeskView('wmemos', S.focus); break;
     case 'unfocus': closeFocus(); break;
     case 'fnode': focusNode(el.dataset.id); break;
     case 'fup': focusUp(); break;
